@@ -91,8 +91,7 @@ function StateCard({ state }: { state: StateStats }) {
           </div>
           <div>
             <div className="text-xs text-slate-500 uppercase">Avg Time</div>
-            <div className="text-xl font-semibold text-blue-600">{Math.round(state.avg_processing_days)}d</div>
-          </div>
+            <div className="text-xl font-semibold text-blue-600">{state.high_priority}</div>          </div>
         </div>
 
         <div className="mb-2">
