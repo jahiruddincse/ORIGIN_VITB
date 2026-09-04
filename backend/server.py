@@ -19,6 +19,13 @@ BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "fra_monitor.db"
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", os.environ.get("LLM_API_KEY", ""))
 
+sys.path.insert(0, str(BASE_DIR))
+try:
+    from app.services.statistics import StatisticsService
+    HAS_APP_SERVICES = True
+except ImportError:
+    HAS_APP_SERVICES = False
+
 def get_db():
     conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -60,6 +67,12 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
 
         # Dashboard KPIs & stats
         if path == '/api/dashboard':
+            if HAS_APP_SERVICES:
+                conn = get_db()
+                payload = StatisticsService.get_dashboard_stats(conn)
+                conn.close()
+                return self.send_json(payload)
+
             conn = get_db()
             c = conn.cursor()
             
@@ -109,8 +122,29 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
                 "total_anomalies": total_anomalies,
                 "high_priority_anomalies": high_priority_anomalies,
                 "avg_processing_days": avg_processing_days,
-                "recent_anomalies": recent_anomalies
+                "recent_anomalies": recent_anomalies,
+                "priority_districts": [],
+                "state_summary": [],
             })
+
+        # District GeoJSON for map choropleth
+        if path == '/api/map/districts':
+            if HAS_APP_SERVICES:
+                conn = get_db()
+                payload = StatisticsService.get_district_geojson(conn)
+                conn.close()
+                return self.send_json(payload)
+            return self.send_json({"type": "FeatureCollection", "features": []})
+
+        # Priority districts list
+        if path == '/api/priority-districts':
+            limit = int(qp('limit', 8))
+            if HAS_APP_SERVICES:
+                conn = get_db()
+                payload = StatisticsService.get_priority_districts(conn, limit)
+                conn.close()
+                return self.send_json(payload)
+            return self.send_json([])
 
         # States summary list
         if path == '/api/states':
@@ -311,6 +345,30 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
         # Anomaly detail by claim_id
         if path.startswith('/api/anomalies/'):
             claim_id = path[len('/api/anomalies/'):]
+            if HAS_APP_SERVICES:
+                conn = get_db()
+                evidence_payload = StatisticsService.get_claim_evidence(conn, claim_id)
+                if not evidence_payload:
+                    conn.close()
+                    return self.send_json({"detail": "Claim not found"}, 404)
+                cursor = conn.cursor()
+                cursor.execute("SELECT * FROM claims WHERE claim_id = ?", (claim_id,))
+                row = dict(cursor.fetchone())
+                conn.close()
+                row["anomaly_types"] = json.loads(row["anomaly_types"])
+                return self.send_json({
+                    "claim_id": claim_id,
+                    "has_anomaly": evidence_payload["has_anomaly"],
+                    "score": evidence_payload["score"],
+                    "severity": evidence_payload["severity"],
+                    "types": evidence_payload["types"],
+                    "claim_details": row,
+                    "evidence": evidence_payload["evidence"],
+                    "district_context": evidence_payload["district_context"],
+                    "state_context": evidence_payload["state_context"],
+                    "score_breakdown": evidence_payload["score_breakdown"],
+                })
+
             conn = get_db()
             c = conn.cursor()
             c.execute("SELECT * FROM claims WHERE claim_id = ?", (claim_id,))

@@ -15,6 +15,8 @@ let currentClaim = null;
 let mainMap = null;
 let miniMap = null;
 let mapMarkers = [];
+let districtLayer = null;
+let districtGeoJson = null;
 let stateChart = null;
 
 // Severity colors
@@ -46,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   if (window.lucide) lucide.createIcons();
   await loadInitialData();
   initMap();
+  await loadDistrictBoundaries();
   setupRouting();
   populateFilterDropdowns();
   renderDashboard();
@@ -231,11 +234,142 @@ function renderDashboard() {
   }).join('');
 
   renderStatePerformanceChart();
+  renderPriorityDistricts();
+  renderStateSummaryTable();
   updateMapMarkers(allClaims);
   if (window.lucide) lucide.createIcons();
 }
 
 // Chart.js State Performance Chart
+function districtFillColor(anomalyRate) {
+  if (anomalyRate >= 50) return '#fecaca';
+  if (anomalyRate >= 35) return '#fed7aa';
+  if (anomalyRate >= 20) return '#fef3c7';
+  return '#ecfdf5';
+}
+
+async function loadDistrictBoundaries() {
+  if (!mainMap) return;
+  try {
+    const res = await fetch('/api/map/districts');
+    if (res.ok) {
+      districtGeoJson = await res.json();
+    }
+  } catch (e) {
+    console.warn('District GeoJSON unavailable, map will show claim points only');
+  }
+
+  if (!districtGeoJson || !districtGeoJson.features) return;
+
+  if (districtLayer) {
+    mainMap.removeLayer(districtLayer);
+  }
+
+  districtLayer = L.geoJSON(districtGeoJson, {
+    style: (feature) => ({
+      fillColor: districtFillColor(feature.properties.anomaly_rate || 0),
+      weight: 1.5,
+      opacity: 0.85,
+      color: '#64748b',
+      fillOpacity: 0.45,
+    }),
+    onEachFeature: (feature, layer) => {
+      const p = feature.properties;
+      layer.bindPopup(`
+        <div class="text-xs">
+          <strong>${p.district}</strong>, ${p.state}<br/>
+          Claims: ${p.claim_count} | Anomalies: ${p.anomalies} (${p.anomaly_rate}%)<br/>
+          <button onclick="focusDistrict('${p.state}', '${p.district}')" class="mt-2 text-indigo-600 font-semibold">View district claims →</button>
+        </div>
+      `);
+      layer.on('click', () => focusDistrict(p.state, p.district));
+    },
+  }).addTo(mainMap);
+}
+
+function focusDistrict(state, district) {
+  document.getElementById('map-state-filter').value = state;
+  const subset = allClaims.filter(c => c.state === state && c.district === district);
+  updateMapMarkers(subset.length ? subset : allClaims.filter(c => c.state === state));
+  if (subset.length > 0) {
+    const lat = subset[0].latitude || subset[0].lat;
+    const lon = subset[0].longitude || subset[0].lon;
+    mainMap.flyTo([lat, lon], 9, { duration: 1.2 });
+  }
+}
+
+function renderPriorityDistricts() {
+  const el = document.getElementById('priority-districts-list');
+  if (!el) return;
+
+  const districts = (dashboardData && dashboardData.priority_districts) || [];
+  if (!districts.length) {
+    // Client-side fallback
+    const fallback = [];
+    statesData.forEach(s => {
+      Object.values(s.districts || {}).forEach(d => {
+        fallback.push({
+          district: d.district,
+          state: s.state,
+          pending: d.pending,
+          anomalies: d.anomalies,
+          high_priority: d.high_priority,
+          attention_reasons: d.anomalies >= 3 ? ['elevated anomalies'] : ['monitoring recommended'],
+        });
+      });
+    });
+    fallback.sort((a, b) => (b.anomalies + b.high_priority) - (a.anomalies + a.high_priority));
+    districts.push(...fallback.slice(0, 8));
+  }
+
+  el.innerHTML = districts.slice(0, 8).map((d, i) => `
+    <div onclick="focusDistrict('${d.state}', '${d.district}')" class="flex items-start gap-3 p-3 rounded-lg border border-slate-200 hover:bg-indigo-50/50 cursor-pointer transition">
+      <div class="flex-shrink-0 w-6 h-6 rounded-full bg-red-100 text-red-700 font-bold text-xs flex items-center justify-center">${i + 1}</div>
+      <div class="flex-1 min-w-0">
+        <div class="font-bold text-slate-900 text-sm">${d.district} <span class="text-slate-400 font-normal">• ${d.state}</span></div>
+        <div class="text-[11px] text-slate-600 mt-0.5">${(d.attention_reasons || []).join(', ')}</div>
+        <div class="flex gap-3 text-[10px] text-slate-500 mt-1">
+          <span>Pending: <strong class="text-amber-700">${d.pending ?? '—'}</strong></span>
+          <span>Anomalies: <strong class="text-orange-700">${d.anomalies ?? '—'}</strong></span>
+          ${d.high_priority ? `<span>High/Critical: <strong class="text-red-700">${d.high_priority}</strong></span>` : ''}
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderStateSummaryTable() {
+  const tbody = document.getElementById('state-summary-table');
+  if (!tbody) return;
+
+  const rows = (dashboardData && dashboardData.state_summary) || statesData.map(s => ({
+    state: s.state,
+    total: s.total,
+    approved: s.approved,
+    pending: s.pending,
+    approval_rate: s.approval_rate,
+    anomalies: s.anomalies,
+  }));
+
+  tbody.innerHTML = rows.map(r => `
+    <tr onclick="selectStateOnMap('${r.state}')" class="hover:bg-indigo-50/60 cursor-pointer">
+      <td class="px-3 py-2 font-semibold text-slate-900">${r.state}</td>
+      <td class="px-3 py-2 text-right">${r.total}</td>
+      <td class="px-3 py-2 text-right text-emerald-700">${r.approved}</td>
+      <td class="px-3 py-2 text-right text-amber-700">${r.pending}</td>
+      <td class="px-3 py-2 text-right">${r.approval_rate}%</td>
+      <td class="px-3 py-2 text-right text-orange-700">${r.anomalies}</td>
+    </tr>
+  `).join('');
+}
+
+function selectStateOnMap(stateName) {
+  document.getElementById('map-state-filter').value = stateName;
+  filterMap();
+  mainMap.flyTo([22.0, 79.5], 6.2, { duration: 1 });
+  document.getElementById('main-map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function renderStatePerformanceChart() {
   const ctx = document.getElementById('statePerformanceChart');
   if (!ctx) return;
@@ -515,7 +649,7 @@ function handleGlobalSearch(query) {
 }
 
 // CLAIM INTELLIGENCE (HERO PAGE)
-function viewClaim(claimId) {
+async function viewClaim(claimId) {
   currentClaim = allClaims.find(c => c.claim_id === claimId);
   if (!currentClaim) return;
 
@@ -586,7 +720,8 @@ function viewClaim(claimId) {
   const evidence = [
     { label: 'Claimant Name', val: currentClaim.claimant_name },
     { label: 'Claim Type', val: currentClaim.claim_type },
-    { label: 'Claimed Area', val: `${currentClaim.area_acres} acres` },
+    { label: 'Claimed Area', val: `${currentClaim.area_acres || currentClaim.claimed_area} acres` },
+    { label: 'Recorded Area', val: `${currentClaim.recorded_area ?? currentClaim.area_acres} acres` },
     { label: 'Submission Date', val: currentClaim.submission_date },
     { label: 'Approval Date', val: currentClaim.approval_date || 'None (Pending)' },
     { label: 'Land Record Status', val: currentClaim.land_record_status },
@@ -614,7 +749,48 @@ function viewClaim(claimId) {
   document.getElementById('ai-loading-state').classList.add('hidden');
   document.getElementById('ai-report-state').classList.add('hidden');
 
+  await renderExplainableEvidence(claimId);
+
   if (window.lucide) lucide.createIcons();
+}
+
+async function renderExplainableEvidence(claimId) {
+  const container = document.getElementById('detail-anomaly-evidence');
+  if (!container) return;
+  container.innerHTML = '<p class="text-xs text-slate-400">Loading evidence...</p>';
+
+  let payload = null;
+  try {
+    const res = await fetch(`/api/anomalies/${claimId}`);
+    if (res.ok) payload = await res.json();
+  } catch (e) {
+    console.warn('Evidence API unavailable, using client-side fallback');
+  }
+
+  const evidenceBlocks = payload?.evidence || [];
+  if (!evidenceBlocks.length) {
+    container.innerHTML = `
+      <div class="p-3 bg-emerald-50 border border-emerald-200 rounded-lg text-xs text-emerald-800">
+        No anomalies flagged. Claim is within normal automated screening parameters.
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = evidenceBlocks.map(block => {
+    const metricsHtml = Object.entries(block.metrics || {}).map(([k, v]) =>
+      `<div class="flex justify-between gap-2"><span class="text-slate-500">${k.replace(/_/g, ' ')}</span><span class="font-mono font-semibold text-slate-800">${v}</span></div>`
+    ).join('');
+
+    return `
+      <div class="border border-amber-200 bg-amber-50/60 rounded-lg p-3">
+        <div class="flex items-center gap-2 mb-2">
+          <span class="text-[10px] font-bold uppercase tracking-wide text-amber-800">${block.type}</span>
+          <span class="text-[10px] text-amber-700">⚠ ${block.severity_hint || 'Potential anomaly'}</span>
+        </div>
+        <div class="grid grid-cols-1 gap-1 text-[11px] mb-2 bg-white/70 rounded p-2 border border-amber-100">${metricsHtml}</div>
+        <p class="text-[11px] text-slate-700 leading-relaxed"><strong>Why flagged:</strong> ${block.explanation}</p>
+      </div>`;
+  }).join('');
 }
 
 function updateMiniMap(lat, lon, claimId, severity) {

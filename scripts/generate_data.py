@@ -37,18 +37,38 @@ DELAY_THRESHOLD = 300  # Higher threshold for data generation to maintain ~10% a
 def random_date(start, end):
     return start + datetime.timedelta(days=random.randint(0, (end - start).days))
 
-def evaluate_anomalies(claim):
-    """Deterministic anomaly engine — matches spec scoring."""
+def evaluate_anomalies(claim, district_ctx=None):
+    """Deterministic anomaly engine — matches backend scoring."""
+    district_ctx = district_ctx or {}
     score = 0
     anomaly_types = []
 
-    # Rule 1: Delayed claim (pending > 180 days)
-    if claim["status"] == "Pending" and claim.get("days_pending", 0) > DELAY_THRESHOLD:
+    threshold = 180  # Backend default; generation uses same for consistency
+    days_pending = claim.get("days_pending", 0)
+
+    # Rule 1: Delayed claim
+    if claim.get("status") in ("Pending", "Under Review") and days_pending > threshold:
         score += 25
         anomaly_types.append("DELAYED_CLAIM")
 
-    # Rule 2: Land record mismatch (only flag for non-Approved claims — approved with mismatch means it was resolved)
-    if claim["land_record_status"] == "Mismatch" and claim["status"] != "Approved":
+    # Rule 1b: Delay vs district average
+    dist_avg = district_ctx.get("avg_pending_days", 0)
+    if (
+        claim.get("status") in ("Pending", "Under Review")
+        and dist_avg > 0
+        and days_pending > dist_avg * 2
+    ):
+        score += 20
+        if "DELAY_VS_DISTRICT_AVG" not in anomaly_types:
+            anomaly_types.append("DELAY_VS_DISTRICT_AVG")
+
+    # Rule 2: Land record mismatch
+    claimed = float(claim.get("area_acres", 0))
+    recorded = float(claim.get("recorded_area", claimed))
+    area_diff = abs(claimed - recorded) / claimed * 100 if claimed else 0
+    if claim.get("status") != "Approved" and (
+        claim.get("land_record_status") == "Mismatch" or area_diff > 20
+    ):
         score += 35
         anomaly_types.append("LAND_RECORD_MISMATCH")
 
@@ -71,6 +91,12 @@ def evaluate_anomalies(claim):
     if claim.get("_possible_duplicate", False):
         score += 25
         anomaly_types.append("POSSIBLE_DUPLICATE")
+
+    # Rule 7: Unusual processing for approved claims
+    dist_avg_approved = district_ctx.get("avg_approved_days", 0)
+    if claim.get("status") == "Approved" and dist_avg_approved > 0 and days_pending > dist_avg_approved * 2:
+        score += 15
+        anomaly_types.append("UNUSUAL_PROCESSING")
 
     # Clamp score to 0-100
     score = min(100, max(0, score))
@@ -114,6 +140,14 @@ def generate_claim(existing_ids):
     land_record_status = random.choices(["Verified", "Mismatch", "Pending Verification"], weights=[82, 8, 10])[0]
     documents_complete = random.choices([True, False], weights=[88, 12])[0]
 
+    # Recorded area in cadastral records (may differ from claimed)
+    if land_record_status == "Verified":
+        recorded_area = round(area_acres * random.uniform(0.95, 1.05), 2)
+    elif land_record_status == "Mismatch":
+        recorded_area = round(area_acres * random.uniform(0.4, 0.75), 2)
+    else:
+        recorded_area = round(area_acres * random.uniform(0.85, 1.0), 2)
+
     start_date = datetime.date(2024, 1, 1)
     end_date = datetime.date(2026, 6, 30)
     submission_date = random_date(start_date, end_date)
@@ -142,6 +176,8 @@ def generate_claim(existing_ids):
         "claimant_name": claimant_name,
         "claim_type": claim_type,
         "area_acres": area_acres,
+        "claimed_area": area_acres,
+        "recorded_area": recorded_area,
         "submission_date": submission_date.isoformat(),
         "approval_date": approval_date.isoformat() if approval_date else None,
         "status": status,
@@ -168,6 +204,8 @@ def main():
         "claimant_name": "Ramesh Gond",
         "claim_type": "Individual",
         "area_acres": 3.2,
+        "claimed_area": 3.2,
+        "recorded_area": 3.2,
         "submission_date": "2025-01-15",
         "approval_date": "2025-04-20",
         "status": "Approved",
@@ -189,6 +227,8 @@ def main():
         "claimant_name": "Sukhdai Maravi",
         "claim_type": "Individual",
         "area_acres": 4.1,
+        "claimed_area": 4.1,
+        "recorded_area": 4.0,
         "submission_date": "2025-01-10",
         "approval_date": None,
         "status": "Pending",
@@ -210,6 +250,8 @@ def main():
         "claimant_name": "Bhuri Bai Korku",
         "claim_type": "Individual",
         "area_acres": 8.5,
+        "claimed_area": 8.5,
+        "recorded_area": 4.2,
         "submission_date": "2026-03-01",
         "approval_date": None,
         "status": "Pending",
@@ -308,6 +350,32 @@ def main():
         c.pop("_geo_inconsistent", None)
         c.pop("_possible_duplicate", None)
         claims.append(c)
+
+    # === Re-evaluate all claims with district context (two-pass) ===
+    def build_district_ctx(claims_list):
+        from collections import defaultdict
+        buckets = defaultdict(lambda: {"pending_days": [], "approved_days": []})
+        for c in claims_list:
+            key = (c["district"], c["state"])
+            if c["status"] in ("Pending", "Under Review"):
+                buckets[key]["pending_days"].append(c.get("days_pending", 0))
+            elif c["status"] == "Approved" and c.get("days_pending"):
+                buckets[key]["approved_days"].append(c["days_pending"])
+        ctx = {}
+        for key, b in buckets.items():
+            ctx[key] = {
+                "avg_pending_days": round(sum(b["pending_days"]) / len(b["pending_days"])) if b["pending_days"] else 0,
+                "avg_approved_days": round(sum(b["approved_days"]) / len(b["approved_days"])) if b["approved_days"] else 0,
+            }
+        return ctx
+
+    district_context = build_district_ctx(claims)
+    for c in claims:
+        ctx = district_context.get((c["district"], c["state"]), {})
+        score, severity, atypes = evaluate_anomalies(c, ctx)
+        c["anomaly_score"] = score
+        c["severity"] = severity
+        c["anomaly_types"] = atypes
 
     # Output to JSON
     out_path = Path(__file__).parent / "claims_data.json"

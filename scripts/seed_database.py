@@ -28,6 +28,7 @@ def setup_database():
         status TEXT NOT NULL,
         land_record_status TEXT NOT NULL,
         documents_complete BOOLEAN NOT NULL,
+        recorded_area REAL,
         days_pending INTEGER NOT NULL DEFAULT 0,
         anomaly_score INTEGER NOT NULL DEFAULT 0,
         severity TEXT NOT NULL DEFAULT 'Normal',
@@ -53,9 +54,9 @@ def setup_database():
     INSERT INTO claims (
         claim_id, state, district, latitude, longitude, claimant_name,
         claim_type, area_acres, submission_date, approval_date, status,
-        land_record_status, documents_complete, days_pending,
+        land_record_status, documents_complete, recorded_area, days_pending,
         anomaly_score, severity, anomaly_types, created_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     '''
 
     for c in claims:
@@ -73,6 +74,7 @@ def setup_database():
             c["status"],
             c["land_record_status"],
             c["documents_complete"],
+            c.get("recorded_area", c["area_acres"]),
             c.get("days_pending", 0),
             c.get("anomaly_score", 0),
             c.get("severity", "Normal"),
