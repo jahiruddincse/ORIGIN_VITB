@@ -96,8 +96,13 @@
           </nav>
         </div>
         
-        <!-- Search bar & Language Toggle -->
+        <!-- Search bar & Language Toggle & Database Badge -->
         <div class="flex items-center space-x-3">
+          <div id="db-status-badge" class="hidden lg:flex items-center space-x-1.5 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 text-[11px] font-medium text-slate-300">
+            <span id="db-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
+            <span id="db-status-text">Database: Initializing...</span>
+          </div>
+
           <div class="flex items-center bg-slate-800/90 p-1 rounded-lg border border-slate-700">
             <button id="lang-btn-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded text-xs font-bold bg-indigo-600 text-white shadow-xs transition">EN</button>
             <button id="lang-btn-hi" onclick="setLanguage('hi')" class="px-2.5 py-1 rounded text-xs font-bold text-slate-400 hover:text-white transition">हिन्दी</button>

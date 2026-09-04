@@ -143,6 +143,30 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 // Load Initial Data with API + Local Fallbacks
 async function loadInitialData() {
+  // Check Database Status (Supabase / SQLite)
+  try {
+    const dbRes = await fetch('/api/database/status');
+    if (dbRes.ok) {
+      const dbInfo = await dbRes.json();
+      const dot = document.getElementById('db-status-dot');
+      const txt = document.getElementById('db-status-text');
+      if (dot && txt) {
+        if (dbInfo.source === 'supabase' && dbInfo.status === 'connected') {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+          txt.textContent = `Supabase Live (${dbInfo.claims_count || '750'})`;
+        } else if (dbInfo.status === 'awaiting_key') {
+          dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+          txt.textContent = `Supabase Ready (Local Fallback)`;
+        } else {
+          dot.className = 'w-2 h-2 rounded-full bg-emerald-500';
+          txt.textContent = `Database: 750 Claims`;
+        }
+      }
+    }
+  } catch (e) {
+    console.debug('Database status check skipped:', e);
+  }
+
   try {
     const res = await fetch('/api/dashboard');
     if (res.ok) {

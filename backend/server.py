@@ -29,8 +29,8 @@ if sys.platform == "win32":
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "fra_monitor.db"
 
-# Load .env file if present
-for ep in [BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
+# Load .env.local and .env files if present
+for ep in [BASE_DIR / ".env.local", BASE_DIR.parent / ".env.local", BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
     if ep.exists():
         try:
             with open(ep, "r", encoding="utf-8") as f:
@@ -43,6 +43,13 @@ for ep in [BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
             pass
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", os.environ.get("LLM_API_KEY", ""))
+SUPABASE_URL = os.environ.get("NEXT_PUBLIC_SUPABASE_URL", "").rstrip("/")
+SUPABASE_KEY = (
+    os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
+    or os.environ.get("NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY")
+    or os.environ.get("NEXT_PUBLIC_SUPABASE_ANON_KEY")
+    or ""
+)
 
 # Gazetted Protected Forest Areas (Centroids in Central/Eastern/Western India)
 PROTECTED_FOREST_AREAS = [
@@ -167,6 +174,12 @@ try:
 except ImportError:
     HAS_APP_SERVICES = False
 
+try:
+    from app.supabase_client import SupabaseService
+    HAS_SUPABASE = True
+except ImportError:
+    HAS_SUPABASE = False
+
 def get_db():
     conn = sqlite3.connect(str(DB_PATH), check_same_thread=False)
     conn.row_factory = sqlite3.Row
@@ -205,6 +218,12 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
         # Health check
         if path == '/api/health':
             return self.send_json({"status": "ok", "timestamp": datetime.datetime.now().isoformat()})
+
+        # Database connection & Supabase status
+        if path == '/api/database/status':
+            if HAS_SUPABASE:
+                return self.send_json(SupabaseService.get_status(fallback_count=750))
+            return self.send_json({"source": "sqlite_fallback", "supabase_configured": False, "status": "unconfigured", "claims_count": 750})
 
         # Dashboard KPIs & stats
         if path == '/api/dashboard':
@@ -389,6 +408,23 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             search = qp('search')
             page = int(qp('page', 1))
             limit = int(qp('limit', 20))
+            offset = (page - 1) * limit
+
+            # Attempt Supabase data retrieval if configured
+            if HAS_SUPABASE and SupabaseService.is_configured():
+                sb_res = SupabaseService.fetch_claims(
+                    state=state,
+                    district=district,
+                    status=status,
+                    severity=severity,
+                    anomaly_type=anomaly_type,
+                    search=search,
+                    limit=limit,
+                    offset=offset
+                )
+                if sb_res and sb_res.get("data") and len(sb_res["data"]) > 0:
+                    sb_res["source"] = "supabase"
+                    return self.send_json(sb_res)
 
             query = "SELECT * FROM claims WHERE 1=1"
             count_query = "SELECT COUNT(*) as total FROM claims WHERE 1=1"
@@ -490,6 +526,12 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
         # Single claim detail
         if path.startswith('/api/claims/'):
             claim_id = path[len('/api/claims/'):]
+            if HAS_SUPABASE and SupabaseService.is_configured():
+                sb_claim = SupabaseService.fetch_claim_by_id(claim_id)
+                if sb_claim:
+                    sb_claim["source"] = "supabase"
+                    return self.send_json(sb_claim)
+
             conn = get_db()
             c = conn.cursor()
             c.execute("SELECT * FROM claims WHERE claim_id = ?", (claim_id,))
@@ -681,6 +723,17 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             conn.commit()
             conn.close()
 
+            # Sync to Supabase if configured
+            if HAS_SUPABASE and SupabaseService.is_configured():
+                SupabaseService.record_disposition(
+                    claim_id=claim_id,
+                    action_type=action_type,
+                    officer_name=officer_name,
+                    officer_designation=officer_designation,
+                    remarks=remarks,
+                    notice_ref_no=notice_ref_no
+                )
+
             return self.send_json({
                 "status": "success",
                 "message": "Disposition recorded successfully",
@@ -759,19 +812,24 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             if not claim_id:
                 return self.send_json({"detail": "claim_id required"}, 400)
 
-            conn = get_db()
-            c = conn.cursor()
-            c.execute("SELECT * FROM claims WHERE claim_id = ?", (claim_id,))
-            row = c.fetchone()
-            conn.close()
-            if not row:
-                return self.send_json({"detail": "Claim not found"}, 404)
+            claim = None
+            if HAS_SUPABASE and SupabaseService.is_configured():
+                claim = SupabaseService.fetch_claim_by_id(claim_id)
 
-            claim = dict(row)
-            try:
-                claim["anomaly_types"] = json.loads(claim["anomaly_types"])
-            except Exception:
-                claim["anomaly_types"] = []
+            if not claim:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("SELECT * FROM claims WHERE claim_id = ?", (claim_id,))
+                row = c.fetchone()
+                conn.close()
+                if not row:
+                    return self.send_json({"detail": "Claim not found"}, 404)
+
+                claim = dict(row)
+                try:
+                    claim["anomaly_types"] = json.loads(claim["anomaly_types"])
+                except Exception:
+                    claim["anomaly_types"] = []
 
             # Try LLM if configured
             if GEMINI_API_KEY:
