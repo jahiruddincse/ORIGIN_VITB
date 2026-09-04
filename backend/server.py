@@ -11,12 +11,28 @@ import os
 import sqlite3
 import sys
 import urllib.parse
+import urllib.request
+import ssl
 from pathlib import Path
 import datetime
 
-# Database setup
+# Database & Env setup
 BASE_DIR = Path(__file__).resolve().parent
 DB_PATH = BASE_DIR / "fra_monitor.db"
+
+# Load .env file if present
+for ep in [BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
+    if ep.exists():
+        try:
+            with open(ep, "r", encoding="utf-8") as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith("#") and "=" in line:
+                        k, v = line.split("=", 1)
+                        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+        except Exception:
+            pass
+
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", os.environ.get("LLM_API_KEY", ""))
 
 sys.path.insert(0, str(BASE_DIR))
@@ -497,7 +513,7 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             # Try LLM if configured
             if GEMINI_API_KEY:
                 try:
-                    import urllib.request
+                    ssl_ctx = ssl._create_unverified_context()
                     prompt_text = f"""You are an AI decision support assistant for the Forest Rights Act (FRA) Monitoring System.
 Analyze this flagged claim data and output a JSON response:
 Claim: {json.dumps(claim, indent=2)}
@@ -510,7 +526,7 @@ Required JSON fields:
 - evidence: key-value dictionary of supporting data points
 - disclaimer: standard decision support disclaimer (not a legal conclusion)"""
 
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={GEMINI_API_KEY}"
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
                     req = urllib.request.Request(
                         url,
                         data=json.dumps({
@@ -519,10 +535,16 @@ Required JSON fields:
                         }).encode('utf-8'),
                         headers={"Content-Type": "application/json"}
                     )
-                    with urllib.request.urlopen(req, timeout=8) as resp:
+                    with urllib.request.urlopen(req, context=ssl_ctx, timeout=25) as resp:
                         res_json = json.loads(resp.read().decode('utf-8'))
-                        text = res_json['candidates'][0]['content']['parts'][0]['text']
-                        return self.send_json(json.loads(text))
+                        text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                        if text.startswith("```json"):
+                            text = text[7:]
+                        if text.startswith("```"):
+                            text = text[3:]
+                        if text.endswith("```"):
+                            text = text[:-3]
+                        return self.send_json(json.loads(text.strip()))
                 except Exception as e:
                     print(f"Gemini API call failed or timed out: {e}. Using deterministic fallback.")
 
@@ -602,6 +624,38 @@ Required JSON fields:
 
             approval_rate = round((stats["approved"] / stats["total"]) * 100, 1)
 
+            # Try LLM if configured
+            if GEMINI_API_KEY:
+                try:
+                    ssl_ctx = ssl._create_unverified_context()
+                    prompt_text = f"""You are an executive AI decision support assistant for the Forest Rights Act (FRA) Monitoring System.
+Analyze this state-level progress data and write a concise, professional executive briefing (2-3 paragraphs) evaluating progress, bottlenecks, anomaly rates, and actionable administrative recommendations for the state administration.
+State: {state_name}
+Stats:
+- Total Claims: {stats['total']}
+- Approved: {stats['approved']} ({approval_rate}%)
+- Pending: {stats['pending']}
+- Rejected: {stats['rejected']}
+- Total Anomalies: {stats['anomalies']}
+- High/Critical Priority Anomalies: {stats['high_priority']}
+
+Output plain text (or markdown) summary suitable for senior IAS officers and Forest Department secretaries."""
+
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
+                    req = urllib.request.Request(
+                        url,
+                        data=json.dumps({
+                            "contents": [{"parts": [{"text": prompt_text}]}]
+                        }).encode('utf-8'),
+                        headers={"Content-Type": "application/json"}
+                    )
+                    with urllib.request.urlopen(req, context=ssl_ctx, timeout=25) as resp:
+                        res_json = json.loads(resp.read().decode('utf-8'))
+                        summary_text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                        return self.send_json({"state": state_name, "summary": summary_text, "stats": stats, "model": "gemini-2.5-flash"})
+                except Exception as e:
+                    print(f"Gemini state summary failed: {e}. Using deterministic fallback.")
+
             summary = (
                 f"{state_name} currently has {stats['total']} total FRA claims on record, with {stats['approved']} claims approved "
                 f"({approval_rate}% approval rate). There are {stats['pending']} claims currently pending review, of which "
@@ -609,7 +663,7 @@ Required JSON fields:
                 f"A total of {stats['anomalies']} claims exhibit one or more detected anomalies (e.g. processing delays or land record mismatches). "
                 f"Administrative focus should be directed toward clearing backlogged claims in priority districts."
             )
-            return self.send_json({"state": state_name, "summary": summary, "stats": stats})
+            return self.send_json({"state": state_name, "summary": summary, "stats": stats, "model": "rule-based-fallback"})
 
         return self.send_json({"detail": f"Path not found: {path}"}, 404)
 
