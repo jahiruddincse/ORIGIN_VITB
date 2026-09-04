@@ -15,23 +15,76 @@ export function FilterBar({ options, filters, onChange }: FilterBarProps) {
     { key: 'severity', label: 'Severity', values: options.severities },
   ];
 
+  const activeFilters = Object.values(filters).filter(Boolean).length;
+
+  const clearFilters = () => {
+    Object.keys(filters).forEach((key) => {
+      onChange(key, '');
+    });
+  };
+
   return (
-    <div className="flex flex-wrap gap-4 bg-white p-4 rounded-lg border border-slate-200 shadow-sm mb-6">
-      {selects.map(s => (
-        <div key={s.key} className="flex-1 min-w-[150px]">
-          <label className="block text-xs font-medium text-slate-500 mb-1">{s.label}</label>
-          <select
-            value={filters[s.key] || ''}
-            onChange={(e) => onChange(s.key, e.target.value)}
-            className="block w-full pl-3 pr-10 py-2 text-base border-slate-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md border"
-          >
-            <option value="">All {s.label}s</option>
-            {s.values.map(v => (
-              <option key={v} value={v}>{v}</option>
-            ))}
-          </select>
+    <div className="bg-white rounded-lg border border-slate-200 shadow-sm mb-6">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-slate-100">
+        <div>
+          <h2 className="text-sm font-semibold text-slate-800">
+            Monitoring Filters
+          </h2>
+          <p className="text-xs text-slate-500 mt-0.5">
+            Narrow claims to focus on priority cases
+          </p>
         </div>
-      ))}
+
+        <div className="flex items-center gap-3">
+          {activeFilters > 0 && (
+            <span className="text-xs font-medium text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full">
+              {activeFilters} active
+            </span>
+          )}
+
+          {activeFilters > 0 && (
+            <button
+              type="button"
+              onClick={clearFilters}
+              className="text-xs font-medium text-slate-500 hover:text-red-600 transition-colors"
+            >
+              Clear all
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 p-4">
+        {selects.map((select) => {
+          const isActive = Boolean(filters[select.key]);
+
+          return (
+            <div key={select.key} className="flex-1 min-w-[150px]">
+              <label className="block text-xs font-medium text-slate-500 mb-1">
+                {select.label}
+              </label>
+
+              <select
+                value={filters[select.key] || ''}
+                onChange={(e) => onChange(select.key, e.target.value)}
+                className={`block w-full pl-3 pr-10 py-2 text-sm rounded-md border focus:outline-none focus:ring-2 focus:ring-indigo-500 ${
+                  isActive
+                    ? 'border-indigo-400 bg-indigo-50 text-indigo-700'
+                    : 'border-slate-300 bg-white text-slate-700'
+                }`}
+              >
+                <option value="">All {select.label}s</option>
+
+                {select.values.map((value) => (
+                  <option key={value} value={value}>
+                    {value}
+                  </option>
+                ))}
+              </select>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
