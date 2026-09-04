@@ -1686,8 +1686,22 @@ function closeModal(id) {
   if (modal) modal.classList.add('hidden');
 }
 
-// Navigation & Routing
+let currentNavSection = 'dashboard';
+let previousNavSection = 'dashboard';
+
 function navigateTo(page) {
+  if (page === 'claim-detail') {
+    if (currentNavSection !== 'claim-detail') {
+      previousNavSection = currentNavSection || 'dashboard';
+    }
+    const backTxt = document.getElementById('back-nav-text');
+    if (backTxt) {
+      backTxt.textContent = previousNavSection === 'claims' ? 'Back to Claims' : 'Back to Dashboard';
+    }
+  } else {
+    currentNavSection = page;
+  }
+
   document.querySelectorAll('main > section').forEach(s => s.classList.add('hidden'));
   document.querySelectorAll('.nav-link').forEach(btn => {
     btn.classList.remove('text-white', 'bg-slate-800');
@@ -1721,7 +1735,7 @@ function navigateTo(page) {
 }
 
 function navigateBack() {
-  navigateTo('claims');
+  navigateTo(previousNavSection || 'dashboard');
 }
 
 function setupRouting() {
