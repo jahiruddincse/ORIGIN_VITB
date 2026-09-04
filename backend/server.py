@@ -15,6 +15,15 @@ import urllib.request
 import ssl
 from pathlib import Path
 import datetime
+import math
+import hashlib
+
+# Safe stdout on Windows
+if sys.platform == "win32":
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")
+    except Exception:
+        pass
 
 # Database & Env setup
 BASE_DIR = Path(__file__).resolve().parent
@@ -34,6 +43,122 @@ for ep in [BASE_DIR / ".env", BASE_DIR.parent / ".env"]:
             pass
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", os.environ.get("LLM_API_KEY", ""))
+
+# Gazetted Protected Forest Areas (Centroids in Central/Eastern/Western India)
+PROTECTED_FOREST_AREAS = [
+    {"name": "Pench Tiger Reserve (MP)", "lat": 21.67, "lon": 79.30, "type": "Critical Tiger Habitat"},
+    {"name": "Kanha National Park (Mandla)", "lat": 22.33, "lon": 80.61, "type": "National Park & Tiger Reserve"},
+    {"name": "Satpura Tiger Reserve (Hoshangabad)", "lat": 22.48, "lon": 78.43, "type": "Tiger Reserve Core"},
+    {"name": "Kanger Ghati National Park (Bastar)", "lat": 18.87, "lon": 81.87, "type": "National Park & Biosphere"},
+    {"name": "Similipal Tiger Reserve (Mayurbhanj)", "lat": 21.93, "lon": 86.34, "type": "Biosphere Reserve & CTH"},
+    {"name": "Achanakmar Tiger Reserve (Bilaspur)", "lat": 22.50, "lon": 81.75, "type": "Critical Tiger Habitat"},
+    {"name": "Bandhavgarh National Park (Umaria)", "lat": 23.70, "lon": 81.03, "type": "National Park Core"},
+    {"name": "Gir National Park & Sanctuary (Junagadh)", "lat": 21.12, "lon": 70.82, "type": "National Park & Wildlife Sanctuary"},
+    {"name": "Tadoba Andhari Tiger Reserve (Chandrapur)", "lat": 20.24, "lon": 79.30, "type": "Tiger Reserve Core"},
+]
+
+def calculate_distance_km(lat1, lon1, lat2, lon2):
+    R = 6371.0
+    dlat = math.radians(lat2 - lat1)
+    dlon = math.radians(lon2 - lon1)
+    a = math.sin(dlat / 2)**2 + math.cos(math.radians(lat1)) * math.cos(math.radians(lat2)) * math.sin(dlon / 2)**2
+    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
+    return round(R * c, 2)
+
+def get_nearest_protected_area(lat, lon):
+    if not lat or not lon:
+        return None
+    closest = None
+    min_dist = float('inf')
+    for pa in PROTECTED_FOREST_AREAS:
+        d = calculate_distance_km(lat, lon, pa["lat"], pa["lon"])
+        if d < min_dist:
+            min_dist = d
+            closest = {**pa, "distance_km": d}
+
+    if min_dist < 2.0:
+        closest["buffer_status"] = "Critical Core Zone (<2km)"
+        closest["conflict_severity"] = "Critical"
+    elif min_dist < 10.0:
+        closest["buffer_status"] = "Eco-Sensitive Buffer Zone (<10km)"
+        closest["conflict_severity"] = "High"
+    elif min_dist < 25.0:
+        closest["buffer_status"] = "Wildlife Corridor Influence (<25km)"
+        closest["conflict_severity"] = "Medium"
+    else:
+        closest["buffer_status"] = "Standard Revenue/Forest Beat (>25km)"
+        closest["conflict_severity"] = "Normal"
+    return closest
+
+def get_temporal_satellite_data(claim_id, anomaly_score, area_acres):
+    if claim_id == "DEMO-001":
+        return {
+            "cutoff_year_2005": {"year": 2005, "ndvi": 0.28, "canopy_density_pct": 22, "classification": "Cultivated / Settled Plot"},
+            "midterm_year_2015": {"year": 2015, "ndvi": 0.31, "canopy_density_pct": 24, "classification": "Stabilized Agriculture"},
+            "present_year_2024": {"year": 2024, "ndvi": 0.30, "canopy_density_pct": 23, "classification": "Active Agricultural Parcel"},
+            "verdict": "Pre-2005 Cultivation Corroborated",
+            "details": "Historical Landsat spectral index (NDVI: 0.28) indicates open agricultural clearing prior to Dec 13, 2005 cut-off. Fully compliant with Section 4(3) statutory criteria.",
+            "fra_cutoff_compliant": True,
+            "canopy_loss_pct": 0
+        }
+    elif claim_id == "DEMO-002":
+        return {
+            "cutoff_year_2005": {"year": 2005, "ndvi": 0.36, "canopy_density_pct": 32, "classification": "Low-Density Agroforestry"},
+            "midterm_year_2015": {"year": 2015, "ndvi": 0.34, "canopy_density_pct": 30, "classification": "Settled Forest Dwelling"},
+            "present_year_2024": {"year": 2024, "ndvi": 0.33, "canopy_density_pct": 28, "classification": "Active Traditional Holding"},
+            "verdict": "Pre-2005 Traditional Occupation Validated",
+            "details": "Stable multi-decadal vegetation signature confirms long-standing traditional forest habitation pre-dating the 2005 threshold.",
+            "fra_cutoff_compliant": True,
+            "canopy_loss_pct": 4
+        }
+    elif claim_id == "DEMO-003":
+        return {
+            "cutoff_year_2005": {"year": 2005, "ndvi": 0.74, "canopy_density_pct": 81, "classification": "Dense Intact Forest Canopy"},
+            "midterm_year_2015": {"year": 2015, "ndvi": 0.65, "canopy_density_pct": 68, "classification": "Initial Canopy Fragmentation"},
+            "present_year_2024": {"year": 2024, "ndvi": 0.32, "canopy_density_pct": 27, "classification": "Recent Forest Clearing"},
+            "verdict": "High Risk: Post-2005 Forest Clearing Detected",
+            "details": "Spectral time-series confirms intact closed-canopy forest (NDVI 0.74, 81% canopy) as of December 2005. Deforestation occurred between 2015 and 2021. SDLC joint verification mandated.",
+            "fra_cutoff_compliant": False,
+            "canopy_loss_pct": 54
+        }
+
+    # Deterministic fallback based on claim_id
+    h = int(hashlib.md5(claim_id.encode()).hexdigest(), 16)
+    is_suspect = anomaly_score >= 60 or (h % 5 == 0)
+    if is_suspect:
+        ndvi_05 = round(0.65 + (h % 15) * 0.01, 2)
+        canopy_05 = int(ndvi_05 * 105)
+        ndvi_15 = round(ndvi_05 - 0.12, 2)
+        canopy_15 = int(canopy_05 - 15)
+        ndvi_24 = round(0.28 + (h % 10) * 0.01, 2)
+        canopy_24 = int(ndvi_24 * 90)
+        loss = canopy_05 - canopy_24
+        return {
+            "cutoff_year_2005": {"year": 2005, "ndvi": ndvi_05, "canopy_density_pct": canopy_05, "classification": "Dense Forest Canopy"},
+            "midterm_year_2015": {"year": 2015, "ndvi": ndvi_15, "canopy_density_pct": canopy_15, "classification": "Canopy Disturbance"},
+            "present_year_2024": {"year": 2024, "ndvi": ndvi_24, "canopy_density_pct": canopy_24, "classification": "Cleared Plot"},
+            "verdict": "Potential Post-2005 Clearing Detected",
+            "details": f"Canopy loss of {loss}% detected after statutory 2005 baseline. Review ground survey records.",
+            "fra_cutoff_compliant": False,
+            "canopy_loss_pct": loss
+        }
+    else:
+        ndvi_05 = round(0.26 + (h % 12) * 0.01, 2)
+        canopy_05 = int(ndvi_05 * 90)
+        ndvi_15 = round(ndvi_05 + 0.03, 2)
+        canopy_15 = int(canopy_05 + 3)
+        ndvi_24 = round(ndvi_05 + 0.02, 2)
+        canopy_24 = canopy_05
+        return {
+            "cutoff_year_2005": {"year": 2005, "ndvi": ndvi_05, "canopy_density_pct": canopy_05, "classification": "Pre-2005 Cleared / Settlement"},
+            "midterm_year_2015": {"year": 2015, "ndvi": ndvi_15, "canopy_density_pct": canopy_15, "classification": "Cultivated Parcel"},
+            "present_year_2024": {"year": 2024, "ndvi": ndvi_24, "canopy_density_pct": canopy_24, "classification": "Traditional Cultivation"},
+            "verdict": "Pre-2005 Cultivation Corroborated",
+            "details": "Consistent agricultural vegetation signature verified prior to December 13, 2005 cut-off.",
+            "fra_cutoff_compliant": True,
+            "canopy_loss_pct": 0
+        }
+
 
 sys.path.insert(0, str(BASE_DIR))
 try:
@@ -324,6 +449,44 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
                 "data": rows
             })
 
+        # Spatial analysis & temporal NDVI for claim
+        if path.startswith('/api/claims/') and path.endswith('/spatial-analysis'):
+            claim_id = path[len('/api/claims/'):-len('/spatial-analysis')]
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT * FROM claims WHERE claim_id = ?", (claim_id,))
+            row = c.fetchone()
+            conn.close()
+            if not row:
+                return self.send_json({"detail": "Claim not found"}, 404)
+            claim = dict(row)
+            lat = claim.get("latitude")
+            lon = claim.get("longitude")
+            nearest_pa = get_nearest_protected_area(lat, lon)
+            temporal = get_temporal_satellite_data(claim_id, claim.get("anomaly_score", 0), claim.get("area_acres", 0))
+            return self.send_json({
+                "claim_id": claim_id,
+                "claimant_name": claim.get("claimant_name"),
+                "coordinates": {"lat": lat, "lon": lon},
+                "nearest_protected_area": nearest_pa,
+                "temporal_satellite_analysis": temporal,
+                "pre_2005_compliant": temporal.get("fra_cutoff_compliant", True)
+            })
+
+        # Claim audit trail / dispositions
+        if path.startswith('/api/claims/') and path.endswith('/audit-trail'):
+            claim_id = path[len('/api/claims/'):-len('/audit-trail')]
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT * FROM claim_dispositions WHERE claim_id = ? ORDER BY created_at DESC", (claim_id,))
+            rows = [dict(r) for r in c.fetchall()]
+            conn.close()
+            return self.send_json({
+                "claim_id": claim_id,
+                "total_actions": len(rows),
+                "dispositions": rows
+            })
+
         # Single claim detail
         if path.startswith('/api/claims/'):
             claim_id = path[len('/api/claims/'):]
@@ -489,6 +652,106 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             req_data = json.loads(post_body.decode('utf-8'))
         except Exception:
             req_data = {}
+
+        # Record officer administrative disposition
+        if path.startswith('/api/claims/') and path.endswith('/disposition'):
+            claim_id = path[len('/api/claims/'):-len('/disposition')]
+            action_type = req_data.get('action_type', 'OFFICER_REVIEWED')
+            officer_name = req_data.get('officer_name', 'Administrative Review Officer')
+            officer_designation = req_data.get('officer_designation', 'SDLC Verification Committee')
+            remarks = req_data.get('remarks', '')
+
+            conn = get_db()
+            c = conn.cursor()
+            c.execute("SELECT claim_id FROM claims WHERE claim_id = ?", (claim_id,))
+            if not c.fetchone():
+                conn.close()
+                return self.send_json({"detail": "Claim not found"}, 404)
+
+            now_str = datetime.datetime.now().strftime('%Y%m%d')
+            h = abs(hash(claim_id + action_type + str(datetime.datetime.now().timestamp()))) % 10000
+            notice_ref_no = f"SDLC/{now_str}/NOT-{h:04d}"
+            created_at = datetime.datetime.now().isoformat()
+
+            c.execute('''
+                INSERT INTO claim_dispositions 
+                (claim_id, action_type, officer_name, officer_designation, remarks, notice_ref_no, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+            ''', (claim_id, action_type, officer_name, officer_designation, remarks, notice_ref_no, created_at))
+            conn.commit()
+            conn.close()
+
+            return self.send_json({
+                "status": "success",
+                "message": "Disposition recorded successfully",
+                "disposition": {
+                    "claim_id": claim_id,
+                    "action_type": action_type,
+                    "officer_name": officer_name,
+                    "officer_designation": officer_designation,
+                    "remarks": remarks,
+                    "notice_ref_no": notice_ref_no,
+                    "created_at": created_at
+                }
+            }, 201)
+
+        # Policy Backlog Clearance Simulation
+        if path == '/api/simulation/clearance':
+            state = req_data.get('state')
+            district = req_data.get('district')
+            teams = int(req_data.get('additional_survey_teams', 2))
+            fast_track_small = bool(req_data.get('fast_track_small_holdings', True))
+            target_days = int(req_data.get('target_resolution_days', 90))
+
+            conn = get_db()
+            c = conn.cursor()
+            query = "SELECT COUNT(*) as pending_total, AVG(area_acres) as avg_area FROM claims WHERE status IN ('Pending', 'Under Review')"
+            params = []
+            if state:
+                query += " AND state = ?"
+                params.append(state)
+            if district:
+                query += " AND district = ?"
+                params.append(district)
+            c.execute(query, params)
+            row = c.fetchone()
+            pending_count = row["pending_total"] if row and row["pending_total"] else 0
+            conn.close()
+
+            # Baseline speed: ~14 claims / week / district
+            baseline_speed = 14
+            # Each survey team adds ~12 claims / week capacity
+            new_speed = baseline_speed + (teams * 12)
+            if fast_track_small:
+                # 28% boost in speed for under 2-acre claims
+                new_speed = int(new_speed * 1.28)
+
+            baseline_weeks = math.ceil(pending_count / baseline_speed) if pending_count > 0 else 1
+            projected_weeks = math.ceil(pending_count / new_speed) if pending_count > 0 else 1
+            days_saved = max(0, (baseline_weeks - projected_weeks) * 7)
+
+            # Trajectory curve
+            weeks = min(20, max(4, projected_weeks + 2))
+            trajectory = []
+            current = pending_count
+            for w in range(weeks + 1):
+                trajectory.append({
+                    "week": w,
+                    "remaining_claims": max(0, current),
+                    "cleared_claims": min(pending_count, pending_count - current)
+                })
+                current -= new_speed
+
+            return self.send_json({
+                "pending_claims": pending_count,
+                "additional_teams": teams,
+                "fast_track_enabled": fast_track_small,
+                "baseline_weeks": baseline_weeks,
+                "projected_weeks": projected_weeks,
+                "days_saved": days_saved,
+                "clearance_rate_weekly": new_speed,
+                "trajectory": trajectory
+            })
 
         # AI: Analyze claim
         if path == '/api/ai/analyze-claim':

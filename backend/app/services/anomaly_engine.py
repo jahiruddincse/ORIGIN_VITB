@@ -87,6 +87,16 @@ class AnomalyEngine:
             score += 15
             anomaly_types.append("UNUSUAL_PROCESSING")
 
+        # Rule 8: Historical canopy clearing (post-2005 clearing signal)
+        if claim.get("_post_2005_clearing", False):
+            score += 20
+            anomaly_types.append("HISTORICAL_CANOPY_CLEARING")
+
+        # Rule 9: Protected zone or tiger reserve overlap
+        if claim.get("_protected_zone_overlap", False):
+            score += 25
+            anomaly_types.append("PROTECTED_ZONE_OVERLAP")
+
         # Clamp
         score = min(100, max(0, score))
 
@@ -115,6 +125,8 @@ class AnomalyEngine:
             "UNUSUAL_PROCESSING": "Processing time unusually high or low compared with similar claims",
             "GEOGRAPHIC_INCONSISTENCY": "Claim coordinates may fall outside expected district boundary",
             "POSSIBLE_DUPLICATE": "Potential duplicate submission detected based on similar attributes",
+            "HISTORICAL_CANOPY_CLEARING": "Satellite temporal NDVI analysis indicates dense canopy in 2005 with clearing post-2005 (potential FRA cut-off non-compliance)",
+            "PROTECTED_ZONE_OVERLAP": "Plot coordinates overlap or fall within 1.5km buffer of a gazetted National Park or Critical Tiger Habitat",
         }
         return descriptions.get(anomaly_type, "Unknown anomaly type")
 
@@ -129,6 +141,8 @@ class AnomalyEngine:
             "UNUSUAL_PROCESSING": 15,
             "GEOGRAPHIC_INCONSISTENCY": 30,
             "POSSIBLE_DUPLICATE": 25,
+            "HISTORICAL_CANOPY_CLEARING": 20,
+            "PROTECTED_ZONE_OVERLAP": 25,
         }
         return [
             {
@@ -138,3 +152,4 @@ class AnomalyEngine:
             }
             for t in anomaly_types
         ]
+
