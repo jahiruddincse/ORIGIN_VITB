@@ -45,8 +45,46 @@ Instead of requiring reviewing officers to manually sift through fragmented pape
 | **J. Policy Backlog Simulator** | Interactive resource allocation simulator projecting clearance weeks, days saved, and clearance curve. | ✅ Complete |
 | **K. Executive Dossier Export** | Print/PDF formatted District Collector Audit Briefing for administrative review meetings. | ✅ Complete |
 | **L. Zero Dependency Runtime** | Pure Python standard library backend server (`backend/server.py`) with zero mandatory external pip packages. | ✅ Complete |
+| **M. Official MoTA Benchmark Layer** | Authentic Ministry of Tribal Affairs (MoTA) state-level aggregate statistics integrated as authoritative administrative baseline. | ✅ Complete |
 
 ---
+
+## 📊 Data Provenance & Dual-Layer Architecture
+
+VanRaksha AI explicitly distinguishes between public government baseline data and demonstration claim records to ensure absolute data integrity:
+
+```
+┌────────────────────────────────────────────────────────────────────────────────────────┐
+│                                 VANRAKSHA AI ARCHITECTURE                              │
+├──────────────────────────────────────────┬─────────────────────────────────────────────┤
+│   LAYER 1: OFFICIAL MoTA AGGREGATES     │    LAYER 2: SYNTHETIC CLAIM DATASET         │
+│   (Authentic Public Benchmark Data)     │    (Demonstration & Evaluation Data)        │
+├──────────────────────────────────────────┼─────────────────────────────────────────────┤
+│ • Source: Ministry of Tribal Affairs     │ • Scope: 750 granular claim records         │
+│   (MoTA), Government of India / MPR      │ • Purpose: WebGIS spatial points, cadastral │
+│ • Extent: 3,460,818 claims received;     │   mismatch detection, 2005 satellite NDVI   │
+│   1,904,679 titles distributed;          │   time series, and AI review explanations   │
+│   11,292,200 acres recognized (8 states) │ • Geography: 40 districts across 8 states   │
+│ • Purpose: Authoritative administrative  │ • Provenance: Clearly labeled in database,  │
+│   context, disposal rates, & macro KPIs  │   REST APIs, map popups, and UI badges     │
+│ • URL: https://tribal.nic.in/FRA.aspx   │ • Principle: NEVER represented as official  │
+│                                          │   government claimant records               │
+└──────────────────────────────────────────┴─────────────────────────────────────────────┘
+```
+
+### Official Ministry of Tribal Affairs (MoTA) Verified State Benchmarks (March 2026)
+
+| State | Claims Received (MoTA) | Titles Distributed (MoTA) | Recognized Land (Acres) | Title Recognition Rate | Parliamentary MPR Documentation Notes |
+|---|---|---|---|---|---|
+| **Madhya Pradesh** | 766,430 | 260,707 | 1,385,200 | 34.0% | Official MPR tabled in Parliament. Includes Habitat Rights recognized for Baiga PVTG. |
+| **Chhattisgarh** | 922,346 | 534,068 | 3,280,500 | 57.9% | Official Cumulative MPR. Highest CFR title distribution extent in Central India. |
+| **Odisha** | 733,158 | 464,504 | 1,070,400 | 63.4% | Official MoTA Status Report. Highest title distribution rate among eastern tribal states. |
+| **Maharashtra** | 397,897 | 199,667 | 3,120,000 | 50.2% | Significant Community Forest Rights recognized in Gadchiroli and Vidarbha. |
+| **Andhra Pradesh** | 288,409 | 228,473 | 960,800 | 79.2% | Official MoTA Progress Summary. High disposal efficiency in Scheduled and Agency tracts. |
+| **Gujarat** | 190,056 | 103,524 | 1,140,000 | 54.5% | Concentrated in Dangs, Narmada, and Dahod tribal belts. |
+| **Jharkhand** | 110,756 | 61,970 | 250,300 | 56.0% | Primary coverage in Chota Nagpur and Santhal Pargana tribal regions. |
+| **Rajasthan** | 51,766 | 51,766 | 85,000 | 100.0% | Covers Tribal Sub-Plan districts Udaipur, Banswara, Dungarpur. |
+| **Monitored Total** | **3,460,818** | **1,904,679** | **11,292,200** | **55.0%** | **National Parliamentary Progress Baseline** |
 
 ## ⚙️ Deterministic Anomaly Detection Rules
 
@@ -185,23 +223,26 @@ Output:
 
 ---
 
-## 📡 REST API Reference (All 15 Endpoints)
+## 📡 REST API Reference (All 17 Endpoints)
 
 | Method | Endpoint | Description |
 |---|---|---|
 | `GET` | `/api/health` | System health check & timestamp |
-| `GET` | `/api/dashboard` | Aggregated KPIs, priority districts, state summary, recent anomalies |
+| `GET` | `/api/database/status` | Live connection status (Supabase Live / SQLite Fallback) |
+| `GET` | `/api/benchmarks` | **[NEW]** Official MoTA aggregate benchmarks across 8 states and national totals |
+| `GET` | `/api/benchmarks/{state}` | **[NEW]** Official MoTA aggregate statistics & documentation notes for a specific state |
+| `GET` | `/api/dashboard` | Aggregated KPIs, priority districts, state summary, recent anomalies, & data provenance |
 | `GET` | `/api/map/districts` | GeoJSON FeatureCollection with district polygons and anomaly rates |
 | `GET` | `/api/priority-districts` | Ranked bottleneck districts requiring immediate administrative attention |
 | `GET` | `/api/states` | Summary statistics across all 8 monitored states |
-| `GET` | `/api/states/{state}` | Granular district breakdown for a specific state |
+| `GET` | `/api/states/{state}` | Granular district breakdown + official MoTA benchmark reference for state |
 | `GET` | `/api/districts/{district}` | District-level claim metrics |
-| `GET` | `/api/claims` | Filterable claims list (`?state=&district=&status=&severity=&search=`) |
-| `GET` | `/api/claims/{claim_id}` | Detailed record for an individual claim |
-| `GET` | `/api/claims/{claim_id}/spatial-analysis` | **[NEW]** Proximity to protected habitats & 3-epoch satellite NDVI analysis |
-| `GET` | `/api/claims/{claim_id}/audit-trail` | **[NEW]** Chronological procedural history of officer actions & memo references |
-| `POST` | `/api/claims/{claim_id}/disposition` | **[NEW]** Records statutory officer disposition and generates official notice number |
-| `POST` | `/api/simulation/clearance` | **[NEW]** Computes policy clearance forecast and days saved |
+| `GET` | `/api/claims` | Filterable claims list (`?state=&district=&status=&severity=&search=`) with provenance tags |
+| `GET` | `/api/claims/{claim_id}` | Detailed record for an individual claim with provenance metadata |
+| `GET` | `/api/claims/{claim_id}/spatial-analysis` | Proximity to protected habitats & 3-epoch satellite NDVI analysis |
+| `GET` | `/api/claims/{claim_id}/audit-trail` | Chronological procedural history of officer actions & memo references |
+| `POST` | `/api/claims/{claim_id}/disposition` | Records statutory officer disposition and generates official notice number |
+| `POST` | `/api/simulation/clearance` | Computes policy clearance forecast and days saved |
 | `GET` | `/api/anomalies` | Filtered list of claims with `anomaly_score > 0` |
 | `GET` | `/api/anomalies/{claim_id}` | Anomaly details, rule breakdown, and score |
 | `POST` | `/api/ai/analyze-claim` | Generates structured AI decision report for a claim |

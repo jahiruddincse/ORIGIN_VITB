@@ -228,3 +228,29 @@ class SupabaseService:
         except Exception as e:
             print(f"Supabase record_disposition error: {e}")
             return False
+
+    @classmethod
+    def fetch_benchmarks(cls, state: Optional[str] = None) -> Optional[List[Dict[str, Any]]]:
+        """Fetch official MoTA aggregate benchmarks from Supabase if available."""
+        if not cls.is_configured():
+            return None
+
+        url = f"{SUPABASE_URL}/rest/v1/fra_official_benchmarks?select=*"
+        if state:
+            url += f"&state=eq.{urllib.parse.quote(state)}"
+        else:
+            url += "&order=claims_received_total.desc"
+
+        headers = {
+            "apikey": SUPABASE_KEY,
+            "Authorization": f"Bearer {SUPABASE_KEY}",
+        }
+
+        try:
+            req = urllib.request.Request(url, headers=headers)
+            with urllib.request.urlopen(req, context=SSL_CTX, timeout=8) as resp:
+                data = json.loads(resp.read().decode("utf-8"))
+                return data
+        except Exception as e:
+            print(f"Supabase fetch_benchmarks error (will use SQLite fallback): {e}")
+            return None

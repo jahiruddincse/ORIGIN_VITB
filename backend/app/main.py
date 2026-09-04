@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import dashboard, claims, states, anomalies, analytics, filters, ai
+from app.api import dashboard, claims, states, anomalies, analytics, filters, ai, benchmarks
 from app.database import get_db_connection
 
 app = FastAPI(title="FRA Decision Support System API", version="1.0.0")
@@ -26,10 +26,11 @@ def startup_db_client():
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(claims.router, prefix="/api", tags=["claims"])
 app.include_router(states.router, prefix="/api", tags=["states"])
+app.include_router(benchmarks.router, prefix="/api", tags=["benchmarks"])
 app.include_router(anomalies.router, prefix="/api", tags=["anomalies"])
-app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
-app.include_router(filters.router, prefix="/api/filters", tags=["filters"])
-app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
+app.include_router(analytics.router, prefix="/api", tags=["analytics"])
+app.include_router(filters.router, prefix="/api", tags=["filters"])
+app.include_router(ai.router, prefix="/api", tags=["ai"])
 
 @app.get("/api/health", tags=["health"])
 def health_check():

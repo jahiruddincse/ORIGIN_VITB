@@ -209,4 +209,13 @@ class StatisticsService:
             "recent_anomalies": recent_anomalies,
             "priority_districts": StatisticsService.get_priority_districts(db),
             "state_summary": StatisticsService.get_state_summary_table(db),
+            "data_provenance": {
+                "claim_records_type": "SYNTHETIC",
+                "claim_records_count": total_claims,
+                "claim_records_note": "Claim-level records (750 claims) shown in this WebGIS interface are synthetic demonstration data generated for hackathon evaluation and spatial anomaly analysis.",
+                "official_benchmark_source": "Ministry of Tribal Affairs (MoTA), Government of India",
+                "official_benchmark_url": "https://tribal.nic.in/FRA.aspx",
+                "official_benchmark_reporting_date": "2026-03-31",
+                "disclaimer": "Claim-level records shown in this hackathon demo are synthetic. Official FRA aggregate statistics are used only as reference benchmarks."
+            }
         }
