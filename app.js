@@ -1038,10 +1038,30 @@ function handleGlobalSearch(query) {
 // CLAIM INTELLIGENCE (HERO VIEW)
 // =========================================================================
 
+function updateSetsActivePreset(activeId) {
+  const presets = [
+    { id: 'DEMO-001', activeClass: 'bg-[#EAF5ED] dark:bg-emerald-950/40 text-[#174334] dark:text-emerald-300 border border-[#D0E7D6] dark:border-emerald-900/40 font-semibold shadow-2xs' },
+    { id: 'DEMO-002', activeClass: 'bg-stone-200 dark:bg-stone-800 text-stone-900 dark:text-stone-100 border border-stone-300 dark:border-stone-700 font-semibold shadow-2xs' },
+    { id: 'FRA-54942', activeClass: 'bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-semibold shadow-2xs' },
+    { id: 'DEMO-003', activeClass: 'bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-semibold shadow-2xs' }
+  ];
+
+  presets.forEach(p => {
+    const btn = document.getElementById(`set-btn-${p.id}`);
+    if (!btn) return;
+    if (activeId === p.id) {
+      btn.className = `inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs transition cursor-pointer whitespace-nowrap ${p.activeClass}`;
+    } else {
+      btn.className = 'inline-flex items-center gap-2 px-3 py-1 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium transition cursor-pointer whitespace-nowrap';
+    }
+  });
+}
+
 async function viewClaim(claimId) {
   currentClaim = allClaims.find(c => c.claim_id === claimId);
   if (!currentClaim) return;
 
+  updateSetsActivePreset(claimId);
   navigateTo('claim-detail');
 
   // Stop previous voice briefing if running
@@ -2073,6 +2093,10 @@ function navigateTo(page) {
     btn.classList.remove('text-[#164E3B]', 'dark:text-emerald-400', 'border-[#164E3B]', 'dark:border-emerald-400', 'font-bold', 'bg-amber-500', 'text-white', 'shadow-sm');
     btn.classList.add('text-stone-500', 'dark:text-stone-400', 'font-medium', 'border-transparent');
   });
+
+  if (page !== 'claim-detail' && page !== 'decide') {
+    updateSetsActivePreset(null);
+  }
 
   const activeNavClasses = ['text-[#164E3B]', 'dark:text-emerald-400', 'border-[#164E3B]', 'dark:border-emerald-400', 'font-bold'];
 
