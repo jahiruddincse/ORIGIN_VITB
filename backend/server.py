@@ -1055,13 +1055,16 @@ Required JSON fields:
                     with urllib.request.urlopen(req, context=ssl_ctx, timeout=25) as resp:
                         res_json = json.loads(resp.read().decode('utf-8'))
                         text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
-                        if text.startswith("```json"):
-                            text = text[7:]
-                        if text.startswith("```"):
-                            text = text[3:]
-                        if text.endswith("```"):
-                            text = text[:-3]
-                        return self.send_json(json.loads(text.strip()))
+                        import re
+                        m = re.search(r'\{.*\}', text, re.DOTALL)
+                        clean_json = m.group(0) if m else text
+                        parsed = json.loads(clean_json)
+                        parsed["live_ai"] = True
+                        parsed["model"] = "gemini-2.5-flash"
+                        if "disclaimer" not in parsed or "without AI assistance" in parsed.get("disclaimer", ""):
+                            parsed["disclaimer"] = "Google Gemini 2.5 Flash live assessment generated for statutory decision support. Flags claims for administrative review."
+                        print(f"[AI] Successfully generated Gemini 2.5 Flash analysis for claim {claim_id}!")
+                        return self.send_json(parsed)
                 except Exception as e:
                     print(f"Gemini API call failed or timed out: {e}. Using deterministic fallback.")
 

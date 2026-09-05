@@ -1558,7 +1558,7 @@ async function runAIAnalysis() {
       result = await res.json();
     }
   } catch (e) {
-    console.warn('Backend AI API call failed, generating deterministic synthesis');
+    console.warn('Backend AI API call failed, generating deterministic synthesis:', e);
   }
 
   if (!result) {
