@@ -1043,30 +1043,36 @@ Required JSON fields:
 - evidence: key-value dictionary of supporting data points
 - disclaimer: standard decision support disclaimer (not a legal conclusion)"""
 
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-                    req = urllib.request.Request(
-                        url,
-                        data=json.dumps({
-                            "contents": [{"parts": [{"text": prompt_text}]}],
-                            "generationConfig": {"response_mime_type": "application/json"}
-                        }).encode('utf-8'),
-                        headers={"Content-Type": "application/json"}
-                    )
-                    with urllib.request.urlopen(req, context=ssl_ctx, timeout=25) as resp:
-                        res_json = json.loads(resp.read().decode('utf-8'))
-                        text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
-                        import re
-                        m = re.search(r'\{.*\}', text, re.DOTALL)
-                        clean_json = m.group(0) if m else text
-                        parsed = json.loads(clean_json)
-                        parsed["live_ai"] = True
-                        parsed["model"] = "gemini-2.5-flash"
-                        if "disclaimer" not in parsed or "without AI assistance" in parsed.get("disclaimer", ""):
-                            parsed["disclaimer"] = "Google Gemini 2.5 Flash live assessment generated for statutory decision support. Flags claims for administrative review."
-                        print(f"[AI] Successfully generated Gemini 2.5 Flash analysis for claim {claim_id}!")
-                        return self.send_json(parsed)
+                    candidate_models = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-pro"]
+                    for model_name in candidate_models:
+                        try:
+                            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+                            req = urllib.request.Request(
+                                url,
+                                data=json.dumps({
+                                    "contents": [{"parts": [{"text": prompt_text}]}],
+                                    "generationConfig": {"response_mime_type": "application/json"}
+                                }).encode('utf-8'),
+                                headers={"Content-Type": "application/json"}
+                            )
+                            with urllib.request.urlopen(req, context=ssl_ctx, timeout=20) as resp:
+                                res_json = json.loads(resp.read().decode('utf-8'))
+                                text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                                import re
+                                m = re.search(r'\{.*\}', text, re.DOTALL)
+                                clean_json = m.group(0) if m else text
+                                parsed = json.loads(clean_json)
+                                parsed["live_ai"] = True
+                                parsed["model"] = model_name
+                                if "disclaimer" not in parsed or "without AI assistance" in parsed.get("disclaimer", ""):
+                                    parsed["disclaimer"] = f"Google Gemini ({model_name}) live assessment generated for statutory decision support."
+                                print(f"[AI] Successfully generated Gemini ({model_name}) analysis for claim {claim_id}!")
+                                return self.send_json(parsed)
+                        except Exception as me:
+                            print(f"[AI] Model {model_name} failed: {me}")
+                            continue
                 except Exception as e:
-                    print(f"Gemini API call failed or timed out: {e}. Using deterministic fallback.")
+                    print(f"Gemini API processing failed: {e}. Using deterministic fallback.")
 
             # Deterministic Rule-Based Fallback
             anomaly_descriptions = {
@@ -1161,18 +1167,24 @@ Stats:
 
 Output plain text (or markdown) summary suitable for senior IAS officers and Forest Department secretaries."""
 
-                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={GEMINI_API_KEY}"
-                    req = urllib.request.Request(
-                        url,
-                        data=json.dumps({
-                            "contents": [{"parts": [{"text": prompt_text}]}]
-                        }).encode('utf-8'),
-                        headers={"Content-Type": "application/json"}
-                    )
-                    with urllib.request.urlopen(req, context=ssl_ctx, timeout=25) as resp:
-                        res_json = json.loads(resp.read().decode('utf-8'))
-                        summary_text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
-                        return self.send_json({"state": state_name, "summary": summary_text, "stats": stats, "model": "gemini-2.5-flash"})
+                    candidate_models = ["gemini-flash-lite-latest", "gemini-flash-latest", "gemini-2.5-flash", "gemini-2.5-pro"]
+                    for model_name in candidate_models:
+                        try:
+                            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model_name}:generateContent?key={GEMINI_API_KEY}"
+                            req = urllib.request.Request(
+                                url,
+                                data=json.dumps({
+                                    "contents": [{"parts": [{"text": prompt_text}]}]
+                                }).encode('utf-8'),
+                                headers={"Content-Type": "application/json"}
+                            )
+                            with urllib.request.urlopen(req, context=ssl_ctx, timeout=25) as resp:
+                                res_json = json.loads(resp.read().decode('utf-8'))
+                                summary_text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                                return self.send_json({"state": state_name, "summary": summary_text, "stats": stats, "model": model_name, "live_ai": True})
+                        except Exception as me:
+                            print(f"[AI] Model {model_name} failed for state summary: {me}")
+                            continue
                 except Exception as e:
                     print(f"Gemini state summary failed: {e}. Using deterministic fallback.")
 
