@@ -41,8 +41,9 @@ export interface StateStats {
   anomalies: number;
   high_priority: number;
   approval_rate: number;
+  risk_score: number;
+  risk_level: 'Normal' | 'Low' | 'Medium' | 'High' | 'Critical';
 }
-
 export interface PaginatedResponse<T> {
   data: T[];
   total: number;

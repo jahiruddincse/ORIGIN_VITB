@@ -37,7 +37,7 @@ export default function StateIntelligence() {
             <YAxis yAxisId="right" orientation="right" stroke="#82ca9d" />
             <Tooltip />
             <Bar yAxisId="left" dataKey="total" fill="#94a3b8" name="Total Claims" />
-            <Bar yAxisId="right" dataKey="avg_processing_days" fill="#6366f1" name="Avg Processing Days" />
+            <Bar yAxisId="right" dataKey="risk_score" fill="#6366f1" name="Risk Score" />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -76,6 +76,42 @@ function StateCard({ state }: { state: StateStats }) {
       </div>
       
       <div className="p-5 flex-1">
+        <div className="mb-5 p-4 rounded-lg bg-slate-50 border border-slate-200">
+  <div className="flex items-center justify-between mb-2">
+    <div>
+      <div className="text-xs text-slate-500 uppercase font-medium">
+        District Risk Score
+      </div>
+      <div className="text-3xl font-bold text-slate-900">
+        {state.risk_score}
+        <span className="text-sm font-normal text-slate-500">/100</span>
+      </div>
+    </div>
+
+    <span
+      className={`px-3 py-1 rounded-full text-xs font-semibold ${
+        state.risk_level === 'Critical'
+          ? 'bg-red-100 text-red-700'
+          : state.risk_level === 'High'
+          ? 'bg-orange-100 text-orange-700'
+          : state.risk_level === 'Medium'
+          ? 'bg-amber-100 text-amber-700'
+          : state.risk_level === 'Low'
+          ? 'bg-yellow-100 text-yellow-700'
+          : 'bg-emerald-100 text-emerald-700'
+      }`}
+    >
+      {state.risk_level}
+    </span>
+  </div>
+
+  <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+    <div
+      className="h-full bg-indigo-500 rounded-full"
+      style={{ width: `${state.risk_score}%` }}
+    />
+  </div>
+</div>
         <div className="grid grid-cols-2 gap-4 mb-6">
           <div>
             <div className="text-xs text-slate-500 uppercase">Total</div>
@@ -91,8 +127,7 @@ function StateCard({ state }: { state: StateStats }) {
           </div>
           <div>
             <div className="text-xs text-slate-500 uppercase">Avg Time</div>
-            <div className="text-xl font-semibold text-blue-600">{Math.round(state.avg_processing_days)}d</div>
-          </div>
+            <div className="text-xl font-semibold text-blue-600">{state.high_priority}</div>          </div>
         </div>
 
         <div className="mb-2">

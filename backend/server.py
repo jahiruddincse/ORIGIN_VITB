@@ -454,11 +454,46 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
                 GROUP BY state
                 ORDER BY total DESC
             ''')
+
             rows = []
+
             for r in c.fetchall():
                 d = dict(r)
-                d["approval_rate"] = round((d["approved"] / d["total"]) * 100, 1) if d["total"] > 0 else 0
+                total = d["total"]
+
+                anomaly_rate = (d["anomalies"] / total) * 100 if total > 0 else 0
+                high_priority_rate = (d["high_priority"] / total) * 100 if total > 0 else 0
+                pending_rate = (d["pending"] / total) * 100 if total > 0 else 0
+
+                d["approval_rate"] = round(
+                    (d["approved"] / total) * 100, 1
+                ) if total > 0 else 0
+
+                anomaly_points = min(anomaly_rate * 0.40, 40)
+                priority_points = min(high_priority_rate * 0.30, 30)
+                pending_points = min(pending_rate * 0.20, 20)
+                approval_points = min((100 - d["approval_rate"]) * 0.10, 10)
+
+                d["risk_score"] = round(
+                    anomaly_points +
+                    priority_points +
+                    pending_points +
+                    approval_points
+                )
+
+                if d["risk_score"] >= 80:
+                    d["risk_level"] = "Critical"
+                elif d["risk_score"] >= 60:
+                    d["risk_level"] = "High"
+                elif d["risk_score"] >= 40:
+                    d["risk_level"] = "Medium"
+                elif d["risk_score"] >= 20:
+                    d["risk_level"] = "Low"
+                else:
+                    d["risk_level"] = "Normal"
+
                 rows.append(d)
+
             conn.close()
             return self.send_json(rows)
 
@@ -467,6 +502,7 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             state_name = urllib.parse.unquote(path[len('/api/states/'):])
             conn = get_db()
             c = conn.cursor()
+
             c.execute('''
                 SELECT 
                     district,
@@ -481,7 +517,9 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
                 GROUP BY district
                 ORDER BY total DESC
             ''', (state_name,))
+
             districts = [dict(r) for r in c.fetchall()]
+
             if not districts:
                 conn.close()
                 return self.send_json({"detail": "State not found"}, 404)
@@ -497,6 +535,7 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
                 FROM claims
                 WHERE state = ?
             ''', (state_name,))
+
             state_stats = dict(c.fetchone())
             state_stats["state"] = state_name
             state_stats["approval_rate"] = round((state_stats["approved"] / state_stats["total"]) * 100, 1) if state_stats["total"] > 0 else 0
@@ -507,6 +546,7 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             official_benchmark = dict(bm_row) if bm_row else None
 
             conn.close()
+
             return self.send_json({
                 "state": state_name,
                 "state_stats": state_stats,
@@ -525,6 +565,7 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
             district_name = urllib.parse.unquote(path[len('/api/districts/'):])
             conn = get_db()
             c = conn.cursor()
+
             c.execute('''
                 SELECT 
                     COUNT(*) as total,
@@ -535,11 +576,17 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
                 FROM claims
                 WHERE district = ?
             ''', (district_name,))
+
             stats = dict(c.fetchone())
             conn.close()
+
             if stats["total"] == 0:
                 return self.send_json({"detail": "District not found"}, 404)
-            return self.send_json({"district": district_name, "stats": stats})
+
+            return self.send_json({
+                "district": district_name,
+                "stats": stats
+            })
 
         # Claims list with filters & pagination
         if path == '/api/claims':

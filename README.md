@@ -298,5 +298,3 @@ Follow this exact presentation sequence for maximum judging impact:
 
 ---
 
-## 📄 License
-This project is open-source and available under the [MIT License](LICENSE).
