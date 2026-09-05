@@ -1,0 +1,7 @@
+frontend/
+scripts/
+tests/
+*.pyc
+__pycache__/
+.env
+.env.local
