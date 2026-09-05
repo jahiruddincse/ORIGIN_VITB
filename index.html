@@ -75,6 +75,13 @@
       100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
     }
 
+    /* Screen fitting */
+    html, body {
+      overflow-x: hidden;
+      max-width: 100vw;
+      width: 100%;
+    }
+
     /* Subtle custom scrollbar */
     ::-webkit-scrollbar { width: 6px; height: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
@@ -83,7 +90,7 @@
     ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
   </style>
 </head>
-<body class="bg-[#F8FAF6] dark:bg-[#040D09] text-stone-900 dark:text-stone-100 flex flex-col min-h-screen antialiased transition-colors duration-300 selection:bg-emerald-500/20 selection:text-emerald-900 dark:selection:text-emerald-200">
+<body class="bg-[#F8FAF6] dark:bg-[#040D09] text-stone-900 dark:text-stone-100 flex flex-col min-h-screen w-full max-w-full overflow-x-hidden antialiased transition-colors duration-300 selection:bg-emerald-500/20 selection:text-emerald-900 dark:selection:text-emerald-200">
 
   <!-- Ambient Atmospheric Canopy Backdrop -->
   <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
@@ -140,7 +147,7 @@
         </div>
 
         <!-- Center: Editorial Navigation Tabs (Clean Icon + Underline Active State) -->
-        <nav class="hidden md:flex items-center space-x-8 h-16 shrink-0">
+        <nav class="hidden md:flex items-center space-x-6 lg:space-x-8 h-16 shrink-0">
           <button onclick="navigateTo('dashboard')" id="nav-dashboard" class="nav-link h-full flex items-center gap-2 text-sm text-[#164E3B] dark:text-emerald-400 font-bold border-b-2 border-[#164E3B] dark:border-emerald-400 transition-all cursor-pointer whitespace-nowrap">
             <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
               <path d="M12 20V10"/>
@@ -174,15 +181,10 @@
             <i data-lucide="map" class="w-4 h-4 shrink-0"></i>
             <span id="nav-item-states">States</span>
           </button>
-
-          <a href="/pitch.html" target="_blank" id="nav-pitch" class="flex items-center gap-1.5 text-xs text-emerald-800 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 hover:bg-emerald-100 px-3 py-1.5 rounded-lg border border-emerald-300 dark:border-emerald-800 font-bold transition-all whitespace-nowrap shadow-2xs">
-            <svg class="w-3.5 h-3.5 text-emerald-700 dark:text-emerald-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect width="18" height="14" x="3" y="3" rx="2"/><path d="M7 21h10"/><path d="M12 17v4"/></svg>
-            <span>Pitch Deck (7 Slides) ↗</span>
-          </a>
         </nav>
 
         <!-- Right Controls: Status, Language, Theme, Search -->
-        <div class="flex items-center space-x-3 shrink-0">
+        <div class="flex items-center space-x-2.5 sm:space-x-3 shrink-0">
           <!-- Database Status Badge -->
           <div id="db-status-badge" class="flex items-center gap-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 whitespace-nowrap">
             <span id="db-status-dot" class="w-2 h-2 rounded-full bg-[#168E53]"></span>
@@ -207,7 +209,7 @@
           </button>
 
           <!-- Search input with ⌘ K -->
-          <div class="relative flex items-center bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl px-3 py-1.5 w-44 sm:w-56 md:w-64 focus-within:ring-2 focus-within:ring-[#1E744E]/25 focus-within:border-[#1E744E] transition-all shrink-0">
+          <div class="relative flex items-center bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl px-2.5 py-1.5 w-36 sm:w-44 lg:w-56 focus-within:ring-2 focus-within:ring-[#1E744E]/25 focus-within:border-[#1E744E] transition-all shrink-0">
             <i data-lucide="search" class="w-3.5 h-3.5 text-stone-400 shrink-0 mr-2"></i>
             <input 
               type="text" 
@@ -285,10 +287,7 @@
   </div>
 
   <!-- MAIN CONTAINER -->
-  
-  </div>
-
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 relative z-10">
+  <main class="flex-1 max-w-7xl w-full mx-auto px-3 sm:px-6 lg:px-8 py-5 space-y-6 relative z-10">
     <!-- ================================================================= -->
     <!-- PAGE 0: MINIMAL PRODUCT GATEWAY / LANDING WORKSPACE               -->
     <!-- ================================================================= -->
@@ -490,7 +489,7 @@
           </div>
           
           <!-- Leaflet Map Container -->
-          <div id="main-map" class="h-[620px] w-full rounded-2xl overflow-hidden border border-stone-200/80 dark:border-stone-800 z-0"></div>
+          <div id="main-map" class="h-[460px] md:h-[500px] lg:h-[540px] w-full rounded-2xl overflow-hidden border border-stone-200/80 dark:border-stone-800 z-0"></div>
           
           <!-- Map Legend -->
           <div class="flex flex-wrap items-center justify-between text-[11px] text-stone-500 dark:text-stone-400 pt-2 px-2 border-t border-stone-100 dark:border-stone-800">
