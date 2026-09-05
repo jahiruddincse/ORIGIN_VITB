@@ -714,11 +714,13 @@ function focusDistrict(state, district) {
 }
 
 function filterMap() {
-  const state = document.getElementById('map-state-filter').value;
-  const sev = document.getElementById('map-severity-filter').value;
+  const state = document.getElementById('map-state-filter')?.value || '';
+  const sev = document.getElementById('map-severity-filter')?.value || '';
+  const status = document.getElementById('map-status-filter')?.value || '';
 
   let subset = allClaims.filter(c => {
     if (state && c.state !== state) return false;
+    if (status && c.status !== status) return false;
     if (sev === 'Critical' && c.severity !== 'Critical') return false;
     if (sev === 'High' && c.severity !== 'High' && c.severity !== 'Critical') return false;
     if (sev === 'Medium' && c.severity === 'Normal' && c.severity === 'Low') return false;
@@ -737,8 +739,9 @@ function filterMap() {
 }
 
 function resetMap() {
-  document.getElementById('map-state-filter').value = '';
-  document.getElementById('map-severity-filter').value = '';
+  if (document.getElementById('map-state-filter')) document.getElementById('map-state-filter').value = '';
+  if (document.getElementById('map-severity-filter')) document.getElementById('map-severity-filter').value = '';
+  if (document.getElementById('map-status-filter')) document.getElementById('map-status-filter').value = '';
   updateMapMarkers(allClaims);
   mainMap.flyTo([22.0, 79.5], 5.4, { duration: 1 });
 }
@@ -2121,14 +2124,14 @@ function setupRouting() {
   } else if (hash === 'landing') {
     navigateTo('landing');
   } else {
-    // Default to clean product gateway
-    navigateTo('landing');
+    // Default to interactive WebGIS dashboard for immediate demo visibility
+    navigateTo('dashboard');
   }
 
   window.addEventListener('hashchange', () => {
     const newHash = window.location.hash.replace('#', '');
-    if (newHash === 'landing' || newHash === '') navigateTo('landing');
-    else if (newHash === 'dashboard' || newHash === 'monitor') navigateTo('dashboard');
+    if (newHash === 'landing') navigateTo('landing');
+    else if (newHash === 'dashboard' || newHash === 'monitor' || newHash === '') navigateTo('dashboard');
     else if (newHash === 'claims' || newHash === 'investigate') navigateTo('claims');
     else if (newHash === 'states') navigateTo('states');
     else if (newHash === 'decide') viewClaim('DEMO-003');

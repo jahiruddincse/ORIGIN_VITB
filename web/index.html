@@ -420,6 +420,14 @@
             <option value="">All 8 States</option>
           </select>
           
+          <select id="map-status-filter" onchange="filterMap()" class="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <option value="">All Statuses</option>
+            <option value="Approved">Approved</option>
+            <option value="Pending">Pending</option>
+            <option value="Rejected">Rejected</option>
+            <option value="Under Review">Under Review</option>
+          </select>
+
           <select id="map-severity-filter" onchange="filterMap()" class="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
             <option value="">All Severities</option>
             <option value="Critical">Critical Only</option>
