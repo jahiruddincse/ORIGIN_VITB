@@ -1,25 +1,26 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>VanRaksha AI (वनरक्षा AI) — Forest Rights Act Decision Support & WebGIS</title>
   
-  <!-- Tailwind CSS CDN -->
+  <!-- Tailwind CSS CDN with darkMode: class -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
+      darkMode: 'class',
       theme: {
         extend: {
           colors: {
-            brand: {
-              50: '#eef2ff',
-              100: '#e0e7ff',
-              500: '#6366f1',
-              600: '#4f46e5',
-              700: '#4338ca',
-              800: '#3730a3',
-              900: '#1e1b4b',
+            forest: {
+              950: '#040D08',
+              900: '#071610',
+              850: '#091E16',
+              800: '#0F2A1F',
+              700: '#153A2C',
+              600: '#1D4D3A',
+              500: '#286B52',
             }
           }
         }
@@ -38,487 +39,923 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;600;700&display=swap');
+    @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,700;1,800&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
     body { font-family: 'Plus Jakarta Sans', sans-serif; }
     code, .font-mono { font-family: 'JetBrains Mono', monospace; }
-    .leaflet-popup-content-wrapper { border-radius: 10px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); }
+    
+    .leaflet-popup-content-wrapper { 
+      border-radius: 14px; 
+      box-shadow: 0 16px 36px -6px rgba(0,0,0,0.3); 
+    }
+    .dark .leaflet-popup-content-wrapper {
+      background: #091E16;
+      color: #f3f4f6;
+      border: 1px solid #1A4232;
+      box-shadow: 0 20px 40px -10px rgba(0,0,0,0.7);
+    }
+    .dark .leaflet-popup-tip {
+      background: #091E16;
+    }
+
     @media print {
       body * { visibility: hidden; }
       #printable-memo-container, #printable-memo-container * { visibility: visible; }
-      #printable-memo-container { position: absolute; left: 0; top: 0; width: 100%; }
+      #printable-memo-container { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; }
       #printable-dossier-container, #printable-dossier-container * { visibility: visible; }
-      #printable-dossier-container { position: absolute; left: 0; top: 0; width: 100%; }
+      #printable-dossier-container { position: absolute; left: 0; top: 0; width: 100%; color: #000; background: #fff; }
     }
+
     .pulse-danger {
-      box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+      box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7);
       animation: pulse-ring 2s infinite;
     }
     @keyframes pulse-ring {
-      0% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
-      70% { box-shadow: 0 0 0 10px rgba(220, 38, 38, 0); }
-      100% { box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
+      0% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0.7); }
+      70% { box-shadow: 0 0 0 10px rgba(225, 29, 72, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(225, 29, 72, 0); }
     }
+
+    /* Subtle custom scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.25); border-radius: 9999px; }
+    .dark ::-webkit-scrollbar-thumb { background: rgba(16, 185, 129, 0.35); }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(16, 185, 129, 0.5); }
   </style>
 </head>
-<body class="bg-slate-50 text-slate-900 flex flex-col min-h-screen antialiased">
+<body class="bg-[#F8FAF6] dark:bg-[#040D09] text-stone-900 dark:text-stone-100 flex flex-col min-h-screen antialiased transition-colors duration-300 selection:bg-emerald-500/20 selection:text-emerald-900 dark:selection:text-emerald-200">
 
-  <!-- TOP NAVIGATION -->
-  <header class="bg-slate-900 text-white sticky top-0 z-50 border-b border-slate-800 shadow-md">
+  <!-- Ambient Atmospheric Canopy Backdrop -->
+  <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+    <div class="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:32px_32px] opacity-[0.03] dark:opacity-[0.08]"></div>
+    <div class="absolute -top-32 right-0 w-[650px] h-[650px] bg-gradient-to-b from-emerald-500/10 via-teal-500/5 to-transparent rounded-full blur-[140px]"></div>
+    <div class="absolute top-1/3 -left-32 w-[550px] h-[550px] bg-gradient-to-r from-amber-500/5 via-emerald-500/5 to-transparent rounded-full blur-[120px]"></div>
+  </div>
+
+  <!-- TOP NAVIGATION (Minimal Sovereign Command Bar) -->
+  <header class="bg-white/95 dark:bg-[#0C0A09]/95 backdrop-blur-md sticky top-0 z-50 border-b border-stone-200/80 dark:border-stone-800 transition-colors">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-      <div class="flex justify-between h-16 items-center">
-        <div class="flex items-center space-x-6 sm:space-x-8">
-          <a href="#dashboard" onclick="navigateTo('dashboard')" class="flex items-center space-x-3">
-            <div class="bg-gradient-to-tr from-emerald-600 to-indigo-600 p-2 rounded-xl text-white shadow-md">
-              <i data-lucide="shield-check" class="w-5 h-5"></i>
-            </div>
+      <div class="flex items-center justify-between h-16 gap-4">
+        
+        <!-- Brand Logo & Monogram -->
+        <div class="flex items-center space-x-3 shrink-0">
+          <a href="#landing" onclick="navigateTo('landing')" class="flex items-center space-x-3.5 group cursor-pointer">
+            <!-- Stylized VAI Monogram Vector -->
+            <svg class="h-8 w-auto shrink-0 select-none drop-shadow-2xs" viewBox="0 0 88 34" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <defs>
+                <linearGradient id="vaiGrad1" x1="0" y1="0" x2="24" y2="34" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#0E3A2F"/>
+                  <stop offset="100%" stop-color="#1B5E43"/>
+                </linearGradient>
+                <linearGradient id="vaiGrad2" x1="16" y1="34" x2="36" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#164D38"/>
+                  <stop offset="100%" stop-color="#2D7A57"/>
+                </linearGradient>
+                <linearGradient id="vaiGrad3" x1="32" y1="34" x2="52" y2="0" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#1B5E43"/>
+                  <stop offset="100%" stop-color="#247250"/>
+                </linearGradient>
+                <linearGradient id="vaiGrad4" x1="74" y1="0" x2="84" y2="34" gradientUnits="userSpaceOnUse">
+                  <stop offset="0%" stop-color="#124032"/>
+                  <stop offset="100%" stop-color="#1C5D42"/>
+                </linearGradient>
+              </defs>
+              <!-- V Left Stroke -->
+              <path d="M5 2C3.8 2 2.7 2.8 2.3 3.9C1.9 5.1 2.3 6.4 3.2 7.2L17.8 29.5C18.8 31 20.4 32 22.2 32C23.1 32 23.9 31.7 24.7 31.2L11.5 4.5C10.8 3 9.2 2 7.5 2H5Z" fill="url(#vaiGrad1)"/>
+              <!-- V Right Stroke -->
+              <path d="M16.5 27L28.8 4.2C29.4 3.1 30.6 2.3 32 2.3C33.7 2.3 35.1 3.7 35.1 5.4C35.1 6.1 34.8 6.7 34.4 7.2L23.2 30.5C22.2 32 20.3 32.7 18.5 32C17.2 31.5 16.3 30.3 16.1 29L16.5 27Z" fill="url(#vaiGrad2)"/>
+              <!-- A Chevrons -->
+              <path d="M34 29.5L45.5 4.2C46.1 3 47.3 2.1 48.7 2.1C50.1 2.1 51.3 3 51.9 4.2L63.5 29.5C64.1 30.8 63.6 32.3 62.3 33C61.8 33.3 61.2 33.4 60.6 33.4C59.6 33.4 58.7 32.9 58.2 32L55 24.8H42.5L39.3 32C38.6 33.4 37 34 35.6 33.4C34.3 32.7 33.6 30.9 34 29.5ZM44.2 20.8H53.3L48.7 10.4L44.2 20.8Z" fill="url(#vaiGrad3)"/>
+              <!-- I Pill -->
+              <rect x="73" y="2.5" width="8" height="29" rx="4" fill="url(#vaiGrad4)"/>
+            </svg>
             <div>
-              <div class="flex items-center space-x-2">
-                <span class="font-black text-lg tracking-tight text-white block">VanRaksha AI</span>
-                <span class="bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-[10px] font-bold px-1.5 py-0.5 rounded">वनरक्षा AI</span>
+              <div class="flex items-center space-x-1.5">
+                <span class="font-black text-base sm:text-lg tracking-tight text-stone-900 dark:text-stone-100 font-sans whitespace-nowrap">VANRAKSHA <span class="text-[#1E744E] dark:text-emerald-400 font-black">AI</span></span>
+                <span class="bg-stone-100 dark:bg-stone-800 text-stone-500 dark:text-stone-400 border border-stone-200 dark:border-stone-700 text-[9px] font-mono font-bold px-1.5 py-0.5 rounded uppercase tracking-wider hidden sm:inline whitespace-nowrap">FRA DSS</span>
               </div>
-              <span class="text-[10px] tracking-wider uppercase text-indigo-400 font-semibold block" id="nav-subtitle">FRA Intelligence & Decision Support</span>
+              <span class="text-[8.5px] tracking-[0.22em] uppercase text-stone-400 dark:text-stone-500 font-semibold block font-mono leading-tight" id="nav-subtitle">Forest Rights Spatial Intelligence</span>
             </div>
           </a>
-          
-          <nav class="hidden md:flex space-x-1">
-            <button onclick="navigateTo('dashboard')" id="nav-dashboard" class="nav-link px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition">
-              <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
-              <span id="nav-item-dashboard">Dashboard</span>
-            </button>
-            <button onclick="navigateTo('claims')" id="nav-claims" class="nav-link px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition">
-              <i data-lucide="file-spreadsheet" class="w-4 h-4"></i>
-              <span id="nav-item-claims">Claims Explorer</span>
-            </button>
-            <button onclick="navigateTo('states')" id="nav-states" class="nav-link px-3 py-2 rounded-lg text-xs font-semibold text-slate-300 hover:text-white hover:bg-slate-800 flex items-center space-x-2 transition">
-              <i data-lucide="map" class="w-4 h-4"></i>
-              <span id="nav-item-states">State Intelligence</span>
-            </button>
-          </nav>
         </div>
-        
-        <!-- Search bar & Language Toggle & Database Badge -->
-        <div class="flex items-center space-x-3">
-          <div id="db-status-badge" class="hidden lg:flex items-center space-x-1.5 bg-slate-800/90 px-2.5 py-1 rounded-lg border border-slate-700 text-[11px] font-medium text-slate-300">
-            <span id="db-status-dot" class="w-2 h-2 rounded-full bg-emerald-400"></span>
-            <span id="db-status-text">Database: Initializing...</span>
+
+        <!-- Center: Editorial Navigation Tabs (Clean Icon + Underline Active State) -->
+        <nav class="hidden md:flex items-center space-x-8 h-16 shrink-0">
+          <button onclick="navigateTo('dashboard')" id="nav-dashboard" class="nav-link h-full flex items-center gap-2 text-sm text-[#164E3B] dark:text-emerald-400 font-bold border-b-2 border-[#164E3B] dark:border-emerald-400 transition-all cursor-pointer whitespace-nowrap">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 20V10"/>
+              <path d="M18 20V4"/>
+              <path d="M6 20v-4"/>
+            </svg>
+            <span id="nav-item-dashboard">Monitor</span>
+          </button>
+
+          <button onclick="navigateTo('claims')" id="nav-claims" class="nav-link h-full flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 font-medium border-b-2 border-transparent transition-all cursor-pointer whitespace-nowrap">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/>
+              <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              <line x1="8" y1="11" x2="14" y2="11"/>
+            </svg>
+            <span id="nav-item-claims">Investigate</span>
+          </button>
+
+          <button onclick="viewClaim('DEMO-003')" id="nav-decide" class="nav-link h-full flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 font-medium border-b-2 border-transparent transition-all cursor-pointer whitespace-nowrap">
+            <svg class="w-4 h-4 shrink-0" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="5" r="2.5"/>
+              <circle cx="6" cy="19" r="2.5"/>
+              <circle cx="18" cy="19" r="2.5"/>
+              <path d="M12 7.5v4.5l-4.5 4.5"/>
+              <path d="M12 12l4.5 4.5"/>
+            </svg>
+            <span>Decide</span>
+          </button>
+
+          <button onclick="navigateTo('states')" id="nav-states" class="nav-link h-full flex items-center gap-2 text-sm text-stone-500 dark:text-stone-400 hover:text-stone-900 dark:hover:text-stone-100 font-medium border-b-2 border-transparent transition-all cursor-pointer whitespace-nowrap">
+            <i data-lucide="map" class="w-4 h-4 shrink-0"></i>
+            <span id="nav-item-states">States</span>
+          </button>
+        </nav>
+
+        <!-- Right Controls: Status, Language, Theme, Search -->
+        <div class="flex items-center space-x-3 shrink-0">
+          <!-- Database Status Badge -->
+          <div id="db-status-badge" class="flex items-center gap-1.5 text-xs font-medium text-stone-600 dark:text-stone-300 whitespace-nowrap">
+            <span id="db-status-dot" class="w-2 h-2 rounded-full bg-[#168E53]"></span>
+            <span id="db-status-text">750 Claims</span>
           </div>
 
-          <div class="flex items-center bg-slate-800/90 p-1 rounded-lg border border-slate-700">
-            <button id="lang-btn-en" onclick="setLanguage('en')" class="px-2.5 py-1 rounded text-xs font-bold bg-indigo-600 text-white shadow-xs transition">EN</button>
-            <button id="lang-btn-hi" onclick="setLanguage('hi')" class="px-2.5 py-1 rounded text-xs font-bold text-slate-400 hover:text-white transition">हिन्दी</button>
+          <!-- Divider -->
+          <div class="h-4 w-px bg-stone-300 dark:bg-stone-700"></div>
+
+          <!-- Bilingual Selector: EN ⌵ -->
+          <div class="relative group">
+            <button id="lang-btn-en" onclick="setLanguage(currentLanguage === 'en' ? 'hi' : 'en')" class="flex items-center gap-1 text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition cursor-pointer">
+              <span>EN</span>
+              <i data-lucide="chevron-down" class="w-3.5 h-3.5 text-stone-400"></i>
+            </button>
+            <button id="lang-btn-hi" onclick="setLanguage('hi')" class="hidden"></button>
           </div>
 
-          <div class="w-44 sm:w-64 relative">
+          <!-- Theme Toggle -->
+          <button id="theme-toggle-btn" onclick="toggleDarkMode()" class="w-8 h-8 rounded-full bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-700 flex items-center justify-center transition cursor-pointer" title="Toggle Light/Dark Theme">
+            <i data-lucide="moon" class="w-4 h-4"></i>
+          </button>
+
+          <!-- Search input with ⌘ K -->
+          <div class="relative flex items-center bg-stone-50 dark:bg-stone-900 border border-stone-200 dark:border-stone-800 rounded-xl px-3 py-1.5 w-44 sm:w-56 md:w-64 focus-within:ring-2 focus-within:ring-[#1E744E]/25 focus-within:border-[#1E744E] transition-all shrink-0">
+            <i data-lucide="search" class="w-3.5 h-3.5 text-stone-400 shrink-0 mr-2"></i>
             <input 
               type="text" 
               id="global-search" 
-              placeholder="Search claim (e.g. DEMO-003)..." 
-              class="w-full bg-slate-800 text-xs text-slate-100 placeholder-slate-400 rounded-lg pl-8 pr-3 py-2 border border-slate-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              placeholder="Search claim..." 
+              class="w-full bg-transparent text-xs text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none"
               onkeydown="if(event.key === 'Enter') handleGlobalSearch(this.value)"
             />
-            <i data-lucide="search" class="w-3.5 h-3.5 text-slate-400 absolute left-2.5 top-2.5"></i>
+            <kbd class="text-[10px] font-mono text-stone-400 dark:text-stone-500 bg-stone-200/60 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded px-1.5 py-0.5 ml-1.5 shrink-0 hidden sm:inline">⌘ K</kbd>
           </div>
         </div>
+
       </div>
     </div>
   </header>
 
-  <!-- QUICK DEMO PRESET BAR -->
-  <div class="bg-indigo-950/90 border-b border-indigo-900/60 px-4 py-2 text-xs text-indigo-200">
-    <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
-      <div class="flex items-center space-x-2">
-        <span class="bg-indigo-600/70 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider">Demo Presets</span>
-        <span class="hidden sm:inline text-[11px] text-indigo-300">Quick benchmark cases:</span>
-      </div>
-      <div class="flex items-center flex-wrap gap-2">
-        <button onclick="viewClaim('DEMO-001')" class="bg-slate-800/90 hover:bg-slate-800 text-emerald-300 px-2.5 py-1 rounded border border-emerald-800/60 hover:border-emerald-500 font-mono text-xs transition flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-          <span>DEMO-001</span>
-          <span class="text-slate-400 font-sans text-[11px] hidden sm:inline">(Approved 2005 Pre-Clear)</span>
-        </button>
-        <button onclick="viewClaim('DEMO-002')" class="bg-slate-800/90 hover:bg-slate-800 text-amber-300 px-2.5 py-1 rounded border border-amber-800/60 hover:border-amber-500 font-mono text-xs transition flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-amber-500"></span>
-          <span>DEMO-002</span>
-          <span class="text-slate-400 font-sans text-[11px] hidden sm:inline">(Low 602d Bastar)</span>
-        </button>
-        <button onclick="viewClaim('FRA-54942')" class="bg-red-950/80 hover:bg-red-900 text-red-300 px-2.5 py-1 rounded border border-red-800/60 hover:border-red-500 font-mono text-xs transition flex items-center space-x-1.5">
-          <span class="w-2 h-2 rounded-full bg-red-500"></span>
-          <span>FRA-54942</span>
-          <span class="text-slate-400 font-sans text-[11px] hidden sm:inline">(Critical 4 Anomalies Sundargarh)</span>
-        </button>
-        <button onclick="viewClaim('DEMO-003')" class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold px-3 py-1 rounded border border-indigo-400 shadow-sm font-mono text-xs flex items-center space-x-1.5 transition">
-          <i data-lucide="alert-octagon" class="w-3.5 h-3.5 text-red-300"></i>
-          <span>DEMO-003</span>
-          <span class="text-indigo-200 font-normal font-sans text-[11px] hidden sm:inline">(Critical Seoni Mismatch + Satellite)</span>
-        </button>
-      </div>
-    </div>
-  </div>
+  <!-- SUB-BAR / SETS TRIAGE RIBBON -->
+  <div id="workspace-triage-ribbon" class="bg-white dark:bg-[#0C0A09] border-b border-stone-200/80 dark:border-stone-800 transition-colors z-20">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2">
+      <div class="flex items-center justify-between gap-4 overflow-x-auto no-scrollbar">
+        
+        <!-- Left: SETS Ribbon -->
+        <div class="flex items-center space-x-2 shrink-0">
+          <span class="text-xs font-bold text-stone-500 dark:text-stone-400 tracking-wider">SETS</span>
+          
+          <div class="h-3.5 w-px bg-stone-200 dark:bg-stone-800 mx-1"></div>
+          
+          <div class="flex items-center space-x-1.5 whitespace-nowrap">
+            <!-- DEMO-001 -->
+            <button onclick="viewClaim('DEMO-001')" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#EAF5ED] dark:bg-emerald-950/40 text-[#174334] dark:text-emerald-300 border border-[#D0E7D6] dark:border-emerald-900/40 text-xs font-semibold hover:opacity-90 transition cursor-pointer whitespace-nowrap shadow-2xs">
+              <span class="w-1.5 h-1.5 rounded-full bg-[#168E53]"></span>
+              <span>DEMO-001</span>
+            </button>
+            
+            <!-- DEMO-002 -->
+            <button onclick="viewClaim('DEMO-002')" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium transition cursor-pointer whitespace-nowrap">
+              <span class="w-1.5 h-1.5 rounded-full bg-stone-400 dark:bg-stone-500"></span>
+              <span>DEMO-002</span>
+            </button>
+            
+            <!-- FRA-54942 -->
+            <button onclick="viewClaim('FRA-54942')" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium transition cursor-pointer whitespace-nowrap">
+              <span class="w-1.5 h-1.5 rounded-full bg-stone-400 dark:bg-stone-500"></span>
+              <span>FRA-54942</span>
+            </button>
+            
+            <!-- DEMO-003 -->
+            <button onclick="viewClaim('DEMO-003')" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-stone-700 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium transition cursor-pointer whitespace-nowrap">
+              <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+              <span>DEMO-003</span>
+            </button>
+          </div>
 
-  <!-- DATA PROVENANCE & DEMO DISCLOSURE BANNER -->
-  <div class="bg-amber-500/10 border-b border-amber-500/30 px-4 py-2 text-xs text-amber-950">
-    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2">
-      <div class="flex items-center space-x-2">
-        <span class="bg-amber-600 text-white font-bold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider flex items-center gap-1">
-          <i data-lucide="info" class="w-3 h-3"></i> Data Provenance
-        </span>
-        <span class="text-[11px] text-amber-900 font-medium">
-          <strong>Official MoTA Aggregate Benchmarks</strong> (3.46M claims, 1.90M titles) integrated as reference baseline. Claim-level records (750 claims) are <strong>synthetic demonstration data</strong> for WebGIS spatial anomaly analysis.
-        </span>
-      </div>
-      <div class="flex items-center space-x-2 text-[11px] text-amber-800 shrink-0">
-        <span>Source: <a href="https://tribal.nic.in/FRA.aspx" target="_blank" rel="noopener noreferrer" class="underline font-semibold hover:text-amber-950">Ministry of Tribal Affairs (MoTA)</a></span>
-        <span>•</span>
-        <span class="bg-amber-200/80 text-amber-900 px-1.5 py-0.5 rounded font-mono text-[10px]">MPR 2026</span>
+          <div class="h-3.5 w-px bg-stone-200 dark:bg-stone-800 mx-1"></div>
+        </div>
+
+        <!-- Right: MoTA Ground Truth Provenance -->
+        <div class="flex items-center space-x-3 text-xs text-stone-500 dark:text-stone-400 whitespace-nowrap shrink-0">
+          <span class="text-xs font-medium text-stone-500 dark:text-stone-400">750 Demo Records</span>
+          
+          <div class="h-3.5 w-px bg-stone-200 dark:bg-stone-800"></div>
+          
+          <a href="https://tribal.nic.in/FRA.aspx" target="_blank" rel="noopener noreferrer" class="text-xs font-semibold text-[#164E3B] dark:text-emerald-400 hover:underline flex items-center gap-1.5 cursor-pointer">
+            <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
+            <span>Official MPR 2026</span>
+            <span class="text-xs">↗</span>
+          </a>
+        </div>
+
       </div>
     </div>
   </div>
 
   <!-- MAIN CONTAINER -->
-  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+  
+  </div>
 
-    <!-- PAGE 1: COMMAND DASHBOARD -->
-    <section id="page-dashboard" class="space-y-6">
-      <!-- 8 KPI CARDS -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3" id="kpi-grid">
-        <!-- Rendered dynamically by JS -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 relative z-10">
+    <!-- ================================================================= -->
+    <!-- PAGE 0: MINIMAL PRODUCT GATEWAY / LANDING WORKSPACE               -->
+    <!-- ================================================================= -->
+    <section id="page-landing" class="space-y-12 py-8 sm:py-14">
+      
+      <!-- Editorial Hero Section -->
+      <div class="text-center max-w-4xl mx-auto space-y-5 px-4">
+        <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-bold tracking-wider uppercase font-mono">
+          <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+          FOREST RIGHTS DECISION SUPPORT
+        </div>
+        
+        <h1 class="text-4xl sm:text-6xl lg:text-7xl font-black text-stone-900 dark:text-stone-100 tracking-tight leading-[1.08] font-sans">
+          SEE WHERE ATTENTION<br class="hidden sm:inline"> IS NEEDED.
+        </h1>
+        
+        <p class="text-base sm:text-xl text-stone-600 dark:text-stone-400 font-medium max-w-2xl mx-auto leading-relaxed">
+          Monitor FRA claims, uncover anomalies, and understand what needs review.
+        </p>
       </div>
 
-      <!-- MAP & QUICK FILTERS -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="p-4 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4 bg-slate-50/70">
-          <div class="flex items-center space-x-3">
-            <h2 class="text-base font-bold text-slate-900 flex items-center space-x-2">
-              <i data-lucide="map-pin" class="w-5 h-5 text-indigo-600"></i>
-              <span id="txt-map-title">Interactive WebGIS FRA Claim & Forest Reserve Map</span>
-            </h2>
-            <span class="text-xs text-slate-500 hidden sm:inline" id="txt-map-desc">District polygons, geotagged claims & protected habitats</span>
+      <!-- THREE LARGE ENTRY CARDS -->
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto px-4">
+        
+        <!-- CARD 1: MONITOR -->
+        <div onclick="navigateTo('dashboard')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-8 border border-stone-200/90 dark:border-stone-800 shadow-sm hover:shadow-xl hover:border-amber-500/50 dark:hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between min-h-[300px]">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition duration-300">
+                <i data-lucide="map" class="w-6 h-6"></i>
+              </div>
+              <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">[ WEBGIS ]</span>
+            </div>
+            <div class="space-y-2">
+              <h2 class="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">MONITOR</h2>
+              <p class="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">See FRA claims across states and districts on an interactive GIS map.</p>
+            </div>
           </div>
+          <div class="pt-6 border-t border-stone-100 dark:border-stone-800/80 flex items-center text-sm font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1.5 transition-transform duration-200">
+            <span>EXPLORE MAP</span>
+            <span class="ml-1.5">→</span>
+          </div>
+        </div>
 
-          <!-- Base Map Switcher & Filter Pills -->
-          <div class="flex flex-wrap items-center gap-2 text-xs">
-            <!-- Base Map Switcher -->
-            <div class="flex items-center bg-white p-0.5 rounded-lg border border-slate-300 shadow-xs">
-              <button id="btn-bm-osm" onclick="switchBaseMap('osm')" class="px-2 py-1 rounded text-xs font-semibold bg-indigo-600 text-white shadow-xs transition">Streets</button>
-              <button id="btn-bm-satellite" onclick="switchBaseMap('satellite')" class="px-2 py-1 rounded text-xs font-semibold text-slate-600 hover:text-slate-900 transition">🛰️ Satellite</button>
-              <button id="btn-bm-topo" onclick="switchBaseMap('topo')" class="px-2 py-1 rounded text-xs font-semibold text-slate-600 hover:text-slate-900 transition">🌲 Forest Topo</button>
+        <!-- CARD 2: INVESTIGATE -->
+        <div onclick="navigateTo('claims')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-8 border border-stone-200/90 dark:border-stone-800 shadow-sm hover:shadow-xl hover:border-amber-500/50 dark:hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between min-h-[300px]">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition duration-300">
+                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
+              </div>
+              <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">[ ANOMALIES ]</span>
+            </div>
+            <div class="space-y-2">
+              <h2 class="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">INVESTIGATE</h2>
+              <p class="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">Find claims and districts that need immediate statutory review.</p>
+            </div>
+          </div>
+          <div class="pt-6 border-t border-stone-100 dark:border-stone-800/80 flex items-center text-sm font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1.5 transition-transform duration-200">
+            <span>FIND ISSUES</span>
+            <span class="ml-1.5">→</span>
+          </div>
+        </div>
+
+        <!-- CARD 3: DECIDE -->
+        <div onclick="viewClaim('DEMO-003')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-8 border border-stone-200/90 dark:border-stone-800 shadow-sm hover:shadow-xl hover:border-amber-500/50 dark:hover:border-amber-500/40 transition-all duration-300 flex flex-col justify-between min-h-[300px]">
+          <div class="space-y-4">
+            <div class="flex items-center justify-between">
+              <div class="w-12 h-12 rounded-2xl bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center group-hover:scale-110 group-hover:bg-amber-500 group-hover:text-white transition duration-300">
+                <i data-lucide="sparkles" class="w-6 h-6"></i>
+              </div>
+              <span class="text-[11px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/20">[ AI SUPPORT ]</span>
+            </div>
+            <div class="space-y-2">
+              <h2 class="text-2xl sm:text-3xl font-bold text-stone-900 dark:text-stone-100 tracking-tight">DECIDE</h2>
+              <p class="text-sm text-stone-500 dark:text-stone-400 leading-relaxed">Understand satellite evidence, Gemini briefings, and officer actions.</p>
+            </div>
+          </div>
+          <div class="pt-6 border-t border-stone-100 dark:border-stone-800/80 flex items-center text-sm font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1.5 transition-transform duration-200">
+            <span>VIEW INSIGHTS</span>
+            <span class="ml-1.5">→</span>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- GLOBAL CTA + BOTTOM MICRO-STATUS -->
+      <div class="text-center space-y-6 max-w-md mx-auto pt-4">
+        <div>
+          <button onclick="navigateTo('dashboard')" class="inline-flex items-center space-x-2 px-6 py-3 rounded-full bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-white text-white dark:text-stone-900 font-bold text-sm shadow-md hover:shadow-lg transition-all">
+            <span>OPEN MONITORING</span>
+            <span>→</span>
+          </button>
+        </div>
+
+        <!-- Understated technical status line -->
+        <div class="text-xs font-mono font-semibold tracking-wider text-stone-400 dark:text-stone-500 flex items-center justify-center gap-2">
+          <span>750 CLAIMS</span>
+          <span>·</span>
+          <span>8 STATES</span>
+          <span>·</span>
+          <span>40 DISTRICTS</span>
+          <span>·</span>
+          <span class="text-emerald-600 dark:text-emerald-400">SUPABASE LIVE</span>
+        </div>
+      </div>
+
+    </section>
+
+
+
+    <!-- ================================================================= -->
+    <!-- PAGE 1: COMMAND DASHBOARD                                         -->
+    <!-- ================================================================= -->
+    <section id="page-dashboard" class="space-y-6 hidden">
+      
+      <!-- WORKSPACE 1 TOP BAR: TITLE & CONTROLS -->
+      <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 bg-white dark:bg-stone-900/90 p-5 rounded-3xl border border-stone-200/90 dark:border-stone-800 shadow-sm">
+        <div class="space-y-1">
+          <div class="flex items-center space-x-2">
+            <span class="text-xs font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">[ WEBGIS ]</span>
+            <h1 class="text-xl sm:text-2xl font-black text-stone-900 dark:text-stone-100 tracking-tight font-sans">MONITOR</h1>
+          </div>
+          <p class="text-xs text-stone-500 dark:text-stone-400">Spatial distribution of FRA claims & forest reserve boundaries across 8 states.</p>
+        </div>
+        
+        <div class="flex items-center flex-wrap gap-2">
+          <!-- Basemap switchers -->
+          <div class="flex items-center bg-stone-100 dark:bg-stone-800/80 p-1 rounded-xl border border-stone-200/80 dark:border-stone-700">
+            <button id="btn-bm-osm" onclick="switchBaseMap('osm')" class="px-2.5 py-1 rounded-lg text-xs font-bold bg-amber-500 text-white shadow-xs transition">OpenStreetMap</button>
+            <button id="btn-bm-satellite" onclick="switchBaseMap('satellite')" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition">Satellite</button>
+            <button id="btn-bm-topo" onclick="switchBaseMap('topo')" class="px-2.5 py-1 rounded-lg text-xs font-semibold text-stone-600 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white transition">Topographic</button>
+          </div>
+          
+          <!-- State & Severity Filters -->
+          <select id="map-state-filter" onchange="filterMap()" class="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <option value="">All 8 States</option>
+          </select>
+          
+          <select id="map-severity-filter" onchange="filterMap()" class="bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-900 dark:text-stone-100 text-xs rounded-xl px-2.5 py-1.5 focus:outline-none focus:ring-1 focus:ring-amber-500">
+            <option value="">All Severities</option>
+            <option value="Critical">Critical Only</option>
+            <option value="High">High + Critical</option>
+            <option value="Normal">Normal Baseline</option>
+          </select>
+
+          <!-- Toggle National Aggregates -->
+          <button onclick="toggleNationalAggregates()" class="px-3 py-1.5 rounded-xl bg-stone-100 dark:bg-stone-800 text-stone-700 dark:text-stone-300 hover:text-stone-900 dark:hover:text-white border border-stone-200 dark:border-stone-700 text-xs font-semibold transition flex items-center gap-1.5">
+            <i data-lucide="bar-chart-2" class="w-3.5 h-3.5 text-amber-500"></i>
+            <span id="txt-kpi-toggle">National MoTA Overview (3.46M)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- COLLAPSIBLE NATIONAL KPI DRAWER (Preserves all KPI IDs & Stats) -->
+      <div id="national-kpi-drawer" class="hidden space-y-3 transition-all duration-300">
+        <div class="grid grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-grid">
+          <!-- Rendered dynamically by JS: Total Claims, Approved, Pending, Anomalies Detected -->
+        </div>
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 bg-white dark:bg-stone-900/90 rounded-2xl p-3 border border-stone-200/80 dark:border-stone-800 text-xs" id="secondary-stats-strip">
+          <div class="flex items-center justify-between px-2">
+            <span class="text-stone-500">National Sanction Rate:</span>
+            <span class="font-mono font-bold text-amber-600 dark:text-amber-400" id="sec-stat-rate">54.9%</span>
+          </div>
+          <div class="flex items-center justify-between px-2 border-l border-stone-200/60 dark:border-stone-800">
+            <span class="text-stone-500">Avg Backlog Duration:</span>
+            <span class="font-mono font-bold text-stone-800 dark:text-stone-200" id="sec-stat-avg-days">241 days</span>
+          </div>
+          <div class="flex items-center justify-between px-2 border-l border-stone-200/60 dark:border-stone-800">
+            <span class="text-stone-500">Critical Red Flags:</span>
+            <span class="font-mono font-bold text-rose-600 dark:text-rose-400" id="sec-stat-critical">37 Claims</span>
+          </div>
+          <div class="flex items-center justify-between px-2 border-l border-stone-200/60 dark:border-stone-800">
+            <span class="text-stone-500">MoTA Data Sync:</span>
+            <span class="font-mono font-semibold text-emerald-600 dark:text-emerald-400">Live</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- TWO-COLUMN GIS WORKSPACE: DOMINANT MAP (8 cols) + COMPACT CONTEXTUAL PANEL (4 cols) -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        <!-- LEFT COLUMN: DOMINANT WEBGIS MAP -->
+        <div class="lg:col-span-8 bg-white dark:bg-stone-900/90 rounded-3xl border border-stone-200/90 dark:border-stone-800 shadow-sm p-4 space-y-3">
+          <div class="flex items-center justify-between px-2">
+            <div class="flex items-center space-x-2">
+              <i data-lucide="map-pin" class="w-4 h-4 text-amber-500"></i>
+              <span class="font-bold text-sm text-stone-900 dark:text-stone-100" id="txt-map-title">Interactive WebGIS FRA Claim & Forest Reserve Map</span>
+            </div>
+            <span class="text-xs text-stone-500 dark:text-stone-400 hidden sm:inline" id="txt-map-desc">Districts + Protected Reserves + Claims</span>
+          </div>
+          
+          <!-- Leaflet Map Container -->
+          <div id="main-map" class="h-[620px] w-full rounded-2xl overflow-hidden border border-stone-200/80 dark:border-stone-800 z-0"></div>
+          
+          <!-- Map Legend -->
+          <div class="flex flex-wrap items-center justify-between text-[11px] text-stone-500 dark:text-stone-400 pt-2 px-2 border-t border-stone-100 dark:border-stone-800">
+            <div class="flex items-center flex-wrap gap-4">
+              <span class="font-bold text-stone-700 dark:text-stone-300">Legend:</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span> Critical (Score 75+)</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-orange-500"></span> High (Score 50-74)</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Medium (Score 25-49)</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span> Low (Score 1-24)</span>
+              <span class="flex items-center gap-1"><span class="w-2.5 h-2.5 rounded-full bg-stone-400"></span> Normal (Score 0)</span>
+            </div>
+            <div class="text-[10px] font-mono text-stone-400 mt-1 sm:mt-0">Click any marker to inspect dossier</div>
+          </div>
+        </div>
+
+        <!-- RIGHT COLUMN: COMPACT CONTEXTUAL PANEL -->
+        <div class="lg:col-span-4 space-y-4">
+          
+          <!-- Context Region Card -->
+          <div class="bg-white dark:bg-stone-900/90 rounded-3xl p-5 border border-stone-200/90 dark:border-stone-800 shadow-sm space-y-4">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 bg-amber-500/10 px-2.5 py-0.5 rounded-full border border-amber-500/20">ACTIVE FOCUS</span>
+              <span class="text-xs text-stone-400 font-mono">MADHYA PRADESH</span>
+            </div>
+            
+            <div>
+              <h2 class="text-2xl font-black text-stone-900 dark:text-stone-100 tracking-tight">SEONI DISTRICT</h2>
+              <p class="text-xs text-stone-500 mt-0.5">Pench Tiger Reserve Corridor Cadastral Sector</p>
             </div>
 
-            <select id="map-state-filter" onchange="filterMap()" class="bg-white border border-slate-300 rounded-md px-2 py-1 text-slate-700 font-medium">
-              <option value="">All States</option>
-            </select>
-            <select id="map-severity-filter" onchange="filterMap()" class="bg-white border border-slate-300 rounded-md px-2 py-1 text-slate-700 font-medium">
-              <option value="">All Severities</option>
-              <option value="Critical">Critical Only</option>
-              <option value="High">High & Critical</option>
-              <option value="Medium">Medium+</option>
-              <option value="Low">Low+</option>
-              <option value="Normal">Normal</option>
-            </select>
-            <button onclick="resetMap()" class="text-indigo-600 hover:text-indigo-800 font-medium px-2 py-1">Reset</button>
+            <div class="grid grid-cols-3 gap-2 py-3 px-3 bg-stone-50 dark:bg-stone-800/60 rounded-2xl border border-stone-200/70 dark:border-stone-800 text-center">
+              <div>
+                <div class="text-lg font-mono font-black text-stone-900 dark:text-stone-100">248</div>
+                <div class="text-[10px] text-stone-500 font-medium">CLAIMS</div>
+              </div>
+              <div class="border-x border-stone-200/70 dark:border-stone-800">
+                <div class="text-lg font-mono font-black text-amber-600 dark:text-amber-400">81</div>
+                <div class="text-[10px] text-stone-500 font-medium">PENDING</div>
+              </div>
+              <div>
+                <div class="text-lg font-mono font-black text-rose-600 dark:text-rose-400">23</div>
+                <div class="text-[10px] text-stone-500 font-medium">ANOMALIES</div>
+              </div>
+            </div>
+
+            <div class="flex items-center gap-2 pt-1">
+              <button onclick="filterClaimsByDistrict('Madhya Pradesh', 'Seoni')" class="flex-1 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-white font-bold text-xs shadow-xs transition flex items-center justify-center gap-1.5">
+                <span>View Claims</span>
+                <span>→</span>
+              </button>
+              <button onclick="openDistrictDossierModal('Seoni', 'Madhya Pradesh')" class="py-2 px-3 rounded-xl bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-300 font-semibold text-xs border border-stone-200 dark:border-stone-700 transition flex items-center justify-center gap-1">
+                <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-500"></i>
+                <span>Dossier</span>
+              </button>
+            </div>
           </div>
+
+          <!-- Bottleneck Priority Districts List -->
+          <div class="bg-white dark:bg-stone-900/90 rounded-3xl p-5 border border-stone-200/90 dark:border-stone-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-xs tracking-tight uppercase" id="txt-priority-title">Bottleneck Districts</h3>
+              <span class="text-[10px] font-mono text-stone-400">Anomaly Density</span>
+            </div>
+            <div id="priority-districts-list" class="space-y-2 max-h-48 overflow-y-auto pr-1">
+              <!-- Rendered dynamically by JS -->
+            </div>
+          </div>
+
+          <!-- Recent Flagged Anomaly Stream -->
+          <div class="bg-white dark:bg-stone-900/90 rounded-3xl p-5 border border-stone-200/90 dark:border-stone-800 shadow-sm space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-xs tracking-tight uppercase">Live Signals</h3>
+              <span class="text-[10px] font-mono text-amber-600 dark:text-amber-400">High-Priority Queue</span>
+            </div>
+            <div id="recent-anomalies-list" class="space-y-2 max-h-56 overflow-y-auto pr-1">
+              <!-- Rendered dynamically by JS -->
+            </div>
+          </div>
+
         </div>
 
-        <!-- Leaflet Map Container -->
-        <div id="main-map" class="h-[520px] w-full z-0"></div>
+      </div>
 
-        <!-- Map Legend -->
-        <div class="p-3 bg-slate-50 border-t border-slate-200 flex flex-wrap items-center justify-between text-xs text-slate-600 gap-2">
-          <div class="flex items-center space-x-4 flex-wrap gap-y-1">
-            <span class="font-semibold text-slate-700">Severity Indicators:</span>
-            <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-red-600 inline-block"></span><span>Critical (80+)</span></span>
-            <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-orange-500 inline-block"></span><span>High (60-79)</span></span>
-            <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-amber-500 inline-block"></span><span>Medium (40-59)</span></span>
-            <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span><span>Low (20-39)</span></span>
-            <span class="flex items-center space-x-1"><span class="w-2.5 h-2.5 rounded-full bg-slate-400 inline-block"></span><span>Normal (0-19)</span></span>
-            <span class="text-slate-300">|</span>
-            <span class="font-semibold text-slate-700">Protected Core Zones:</span>
-            <span class="flex items-center space-x-1"><span class="w-3 h-3 rounded border border-emerald-600 bg-emerald-100 inline-block"></span><span>Tiger / Biosphere Reserve</span></span>
+    </section>
+
+    <section id="page-claims" class="space-y-8 hidden">
+      
+      <!-- WORKSPACE 2: EDITORIAL EXECUTIVE HEADER (5-SECOND EYE GLANCE) -->
+      <div class="space-y-4 pt-1">
+        <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+          <div class="space-y-2">
+            <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 text-xs font-mono font-bold tracking-wider uppercase">
+              <span class="w-2 h-2 rounded-full bg-amber-500 animate-pulse"></span>
+              STATUTORY ANOMALY ENGINE
+            </div>
+            <h1 class="text-3xl sm:text-5xl font-black text-stone-900 dark:text-stone-100 tracking-tight leading-none font-sans">
+              INVESTIGATE ANOMALIES
+            </h1>
+            <p class="text-sm text-stone-500 dark:text-stone-400 font-medium max-w-2xl">
+              Real-time cadastral verification and statutory delay detection across 750 monitored FRA claims.
+            </p>
           </div>
-          <span class="text-slate-400 text-[11px]">Click district or claim pin to inspect spatial records</span>
+
+          <!-- 5-Second Glance Telemetry Counter Cards -->
+          <div class="grid grid-cols-3 gap-2.5 sm:gap-3 shrink-0">
+            <div class="px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900/90 border border-rose-200 dark:border-rose-900/50 shadow-2xs">
+              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-rose-600 dark:text-rose-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                CRITICAL
+              </div>
+              <div class="text-2xl font-mono font-black text-stone-900 dark:text-stone-100 mt-0.5">37</div>
+            </div>
+            
+            <div class="px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900/90 border border-amber-200 dark:border-amber-900/50 shadow-2xs">
+              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                DELAYED
+              </div>
+              <div class="text-2xl font-mono font-black text-stone-900 dark:text-stone-100 mt-0.5">287</div>
+            </div>
+
+            <div class="px-4 py-2.5 rounded-2xl bg-white dark:bg-stone-900/90 border border-stone-200/80 dark:border-stone-800 shadow-2xs">
+              <div class="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-500 dark:text-stone-400 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                MONITORED
+              </div>
+              <div class="text-2xl font-mono font-black text-stone-900 dark:text-stone-100 mt-0.5">750</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- PRIORITY DISTRICTS + STATE SUMMARY -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <div class="mb-4">
-            <h3 class="font-bold text-slate-900 text-sm flex items-center justify-between">
-              <span id="txt-priority-title">High Priority Districts — Immediate Attention Required</span>
-              <span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded">SDLC Task Force</span>
-            </h3>
-            <p class="text-xs text-slate-500 mt-0.5">Ranked by backlog duration, cadastral mismatch density, and anomalous ratios</p>
+      <!-- 5-SECOND GLANCE: NEEDS ATTENTION PRIORITY CARDS -->
+      <div class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span>
+            <h2 class="text-sm sm:text-base font-black text-stone-900 dark:text-stone-100 uppercase tracking-wider font-mono">
+              PRIORITY ACTION QUEUE
+            </h2>
           </div>
-          <div id="priority-districts-list" class="space-y-2 max-h-[290px] overflow-y-auto pr-1">
-            <!-- Rendered dynamically -->
+          <span class="text-xs text-stone-400 font-mono hidden sm:inline">1-Click Statutory Dossier Review</span>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+          
+          <!-- DEMO-003: Critical Hero Case -->
+          <div onclick="viewClaim('DEMO-003')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-5 border-2 border-rose-500/80 hover:border-rose-500 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="bg-rose-500 text-white text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider shadow-2xs">CRITICAL · SCORE 80</span>
+                <span class="text-xs font-mono font-bold text-stone-900 dark:text-stone-100 group-hover:text-rose-600 transition">DEMO-003</span>
+              </div>
+              
+              <div>
+                <div class="text-lg font-bold text-stone-900 dark:text-stone-100 group-hover:text-rose-600 transition">Seoni · MP</div>
+                <div class="text-xs text-stone-500 mt-0.5 font-medium">Bhuri Bai Korku (Individual Claim)</div>
+              </div>
+
+              <!-- Visual Red Flag Box -->
+              <div class="text-xs text-rose-700 dark:text-rose-300 font-medium bg-rose-50 dark:bg-rose-950/40 p-3 rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-1">
+                <div class="font-bold flex items-center gap-1.5 text-rose-800 dark:text-rose-200">
+                  <i data-lucide="alert-octagon" class="w-3.5 h-3.5"></i>
+                  <span>Cadastral Mismatch</span>
+                </div>
+                <div class="font-mono text-[11px]">8.5 ac claimed vs 4.2 ac recorded (+102%)</div>
+                <div class="text-[11px] text-rose-600/90 dark:text-rose-400">187 days pending statutory verification</div>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-xs font-bold text-rose-600 dark:text-rose-400 group-hover:translate-x-1 transition-transform">
+              <span>Inspect Dossier & Evidence</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <!-- FRA-54942: 4 Anomalies -->
+          <div onclick="viewClaim('FRA-54942')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-5 border border-rose-500/40 hover:border-rose-500 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30 text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">CRITICAL · SCORE 75</span>
+                <span class="text-xs font-mono font-bold text-stone-900 dark:text-stone-100 group-hover:text-rose-600 transition">FRA-54942</span>
+              </div>
+              
+              <div>
+                <div class="text-lg font-bold text-stone-900 dark:text-stone-100 group-hover:text-rose-600 transition">Sundargarh · Odisha</div>
+                <div class="text-xs text-stone-500 mt-0.5 font-medium">Ganga Oram (Tribal Sub-Plan)</div>
+              </div>
+
+              <!-- Visual Red Flag Box -->
+              <div class="text-xs text-rose-700 dark:text-rose-300 font-medium bg-rose-50 dark:bg-rose-950/40 p-3 rounded-2xl border border-rose-200 dark:border-rose-900/50 space-y-1">
+                <div class="font-bold flex items-center gap-1.5 text-rose-800 dark:text-rose-200">
+                  <i data-lucide="alert-triangle" class="w-3.5 h-3.5"></i>
+                  <span>4 Anomalies Detected</span>
+                </div>
+                <div class="font-mono text-[11px]">Delayed + Duplicate Submission</div>
+                <div class="text-[11px] text-rose-600/90 dark:text-rose-400">Gram Sabha resolution document missing</div>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
+              <span>Inspect Dossier</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <!-- DEMO-002: Bastar 602d Delay -->
+          <div onclick="viewClaim('DEMO-002')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-5 border border-amber-500/40 hover:border-amber-500 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-500/30 text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">DELAYED · SCORE 25</span>
+                <span class="text-xs font-mono font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-600 transition">DEMO-002</span>
+              </div>
+              
+              <div>
+                <div class="text-lg font-bold text-stone-900 dark:text-stone-100 group-hover:text-amber-600 transition">Bastar · CG</div>
+                <div class="text-xs text-stone-500 mt-0.5 font-medium">Sukhdai Maravi (Individual Claim)</div>
+              </div>
+
+              <!-- Visual Alert Box -->
+              <div class="text-xs text-amber-800 dark:text-amber-300 font-medium bg-amber-50 dark:bg-amber-950/40 p-3 rounded-2xl border border-amber-200 dark:border-amber-900/50 space-y-1">
+                <div class="font-bold flex items-center gap-1.5 text-amber-900 dark:text-amber-200">
+                  <i data-lucide="clock" class="w-3.5 h-3.5"></i>
+                  <span>Statutory Backlog</span>
+                </div>
+                <div class="font-mono text-[11px]">602 days pending review</div>
+                <div class="text-[11px] text-amber-700/90 dark:text-amber-400">Exceeds 180-day SLA by 422 days</div>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-xs font-bold text-amber-600 dark:text-amber-400 group-hover:translate-x-1 transition-transform">
+              <span>Inspect Dossier</span>
+              <span>→</span>
+            </div>
+          </div>
+
+          <!-- DEMO-001: Pre-2005 Verified Baseline -->
+          <div onclick="viewClaim('DEMO-001')" class="group cursor-pointer bg-white dark:bg-stone-900/90 rounded-3xl p-5 border border-stone-200/90 dark:border-stone-800 hover:border-emerald-500 shadow-sm hover:shadow-lg hover:scale-[1.01] transition-all flex flex-col justify-between space-y-4">
+            <div class="space-y-3">
+              <div class="flex items-center justify-between">
+                <span class="bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-500/30 text-[10px] font-mono font-black px-2.5 py-0.5 rounded-full uppercase tracking-wider">VERIFIED · SCORE 0</span>
+                <span class="text-xs font-mono font-bold text-stone-900 dark:text-stone-100 group-hover:text-emerald-600 transition">DEMO-001</span>
+              </div>
+              
+              <div>
+                <div class="text-lg font-bold text-stone-900 dark:text-stone-100 group-hover:text-emerald-600 transition">Mandla · MP</div>
+                <div class="text-xs text-stone-500 mt-0.5 font-medium">Ramesh Gond (Approved Title)</div>
+              </div>
+
+              <!-- Visual Normal Box -->
+              <div class="text-xs text-emerald-800 dark:text-emerald-300 font-medium bg-emerald-50 dark:bg-emerald-950/40 p-3 rounded-2xl border border-emerald-200 dark:border-emerald-900/50 space-y-1">
+                <div class="font-bold flex items-center gap-1.5 text-emerald-900 dark:text-emerald-200">
+                  <i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i>
+                  <span>Statutory Compliance</span>
+                </div>
+                <div class="font-mono text-[11px]">3.2 acres approved title</div>
+                <div class="text-[11px] text-emerald-700/90 dark:text-emerald-400">Pre-2005 satellite epoch verified</div>
+              </div>
+            </div>
+
+            <div class="pt-2 border-t border-stone-100 dark:border-stone-800 flex items-center justify-between text-xs font-bold text-emerald-600 dark:text-emerald-400 group-hover:translate-x-1 transition-transform">
+              <span>Inspect Baseline</span>
+              <span>→</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- PROGRESSIVE DISCLOSURE: ALL CLAIMS DIRECTORY (750 CLAIMS) -->
+      <div class="space-y-4 pt-2">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-stone-200/80 dark:border-stone-800">
+          <div>
+            <h2 class="text-xl font-black text-stone-900 dark:text-stone-100 tracking-tight">Claims Directory</h2>
+            <p class="text-xs text-stone-500 dark:text-stone-400">Search and filter across all 750 synthetic demo claims.</p>
+          </div>
+          
+          <div class="flex items-center gap-2">
+            <span class="bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 border border-amber-200 dark:border-amber-800 text-xs font-mono font-bold px-3 py-1 rounded-full shadow-2xs" id="claims-count-badge">Loading claims...</span>
           </div>
         </div>
 
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div class="mb-4">
-            <h3 class="font-bold text-slate-900 text-sm" id="txt-state-prog-title">State-wise FRA Progress Summary</h3>
-            <p class="text-xs text-slate-500">Click any state row to zoom and inspect territorial boundaries</p>
+        <!-- Quick 1-Click Triage Filter Chips -->
+        <div class="flex items-center flex-wrap gap-1.5 text-xs">
+          <span class="text-[10px] font-mono font-bold text-stone-400 uppercase tracking-wider mr-1">Quick Filter:</span>
+          <button onclick="setQuickFilter('all')" class="px-2.5 py-1 rounded-lg bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 font-bold shadow-2xs hover:opacity-90 transition cursor-pointer">All (750)</button>
+          <button onclick="setQuickFilter('critical')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-stone-800 text-rose-600 dark:text-rose-400 border border-stone-200 dark:border-stone-700 hover:border-rose-500 font-bold transition shadow-2xs cursor-pointer">Critical (37)</button>
+          <button onclick="setQuickFilter('delayed')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-stone-800 text-amber-600 dark:text-amber-400 border border-stone-200 dark:border-stone-700 hover:border-amber-500 font-bold transition shadow-2xs cursor-pointer">Delayed Backlog</button>
+          <button onclick="setQuickFilter('mp')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 hover:border-amber-500 font-medium transition shadow-2xs cursor-pointer">Madhya Pradesh</button>
+          <button onclick="setQuickFilter('cg')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 hover:border-amber-500 font-medium transition shadow-2xs cursor-pointer">Chhattisgarh</button>
+          <button onclick="setQuickFilter('odisha')" class="px-2.5 py-1 rounded-lg bg-white dark:bg-stone-800 text-stone-700 dark:text-stone-300 border border-stone-200 dark:border-stone-700 hover:border-amber-500 font-medium transition shadow-2xs cursor-pointer">Odisha</button>
+        </div>
+
+        <!-- FILTER BAR (Dropdowns) -->
+        <div class="bg-white dark:bg-stone-900/90 rounded-2xl p-4 border border-stone-200/80 dark:border-stone-800 shadow-sm grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+          <div>
+            <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">State</label>
+            <select id="filter-state" onchange="applyFilters()" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs rounded-xl px-2.5 py-2 text-stone-900 dark:text-stone-100 focus:ring-1 focus:ring-amber-500">
+              <option value="">All States</option>
+            </select>
           </div>
-          <div class="overflow-x-auto max-h-[290px] overflow-y-auto">
-            <table class="min-w-full text-xs">
-              <thead class="bg-slate-50 text-slate-500 uppercase font-semibold sticky top-0">
+          <div>
+            <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">District</label>
+            <select id="filter-district" onchange="applyFilters()" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs rounded-xl px-2.5 py-2 text-stone-900 dark:text-stone-100 focus:ring-1 focus:ring-amber-500">
+              <option value="">All Districts</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">Status</label>
+            <select id="filter-status" onchange="applyFilters()" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs rounded-xl px-2.5 py-2 text-stone-900 dark:text-stone-100 focus:ring-1 focus:ring-amber-500">
+              <option value="">All Statuses</option>
+              <option value="Approved">Approved</option>
+              <option value="Pending">Pending</option>
+              <option value="Rejected">Rejected</option>
+              <option value="Under Review">Under Review</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">Severity</label>
+            <select id="filter-severity" onchange="applyFilters()" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs rounded-xl px-2.5 py-2 text-stone-900 dark:text-stone-100 focus:ring-1 focus:ring-amber-500">
+              <option value="">All Severities</option>
+              <option value="Critical">Critical</option>
+              <option value="High">High</option>
+              <option value="Medium">Medium</option>
+              <option value="Low">Low</option>
+              <option value="Normal">Normal</option>
+            </select>
+          </div>
+          <div class="col-span-2 sm:col-span-1">
+            <label class="block text-[10px] font-bold text-stone-500 uppercase tracking-wider mb-1">Anomaly Type</label>
+            <select id="filter-anomaly" onchange="applyFilters()" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-xs rounded-xl px-2.5 py-2 text-stone-900 dark:text-stone-100 focus:ring-1 focus:ring-amber-500">
+              <option value="">All Anomaly Types</option>
+              <option value="DELAYED_CLAIM">Delayed (>180d)</option>
+              <option value="LAND_RECORD_MISMATCH">Land Mismatch</option>
+              <option value="INCOMPLETE_DOCUMENTATION">Missing Documents</option>
+              <option value="UNUSUAL_AREA">Unusual Area</option>
+              <option value="GEOGRAPHIC_INCONSISTENCY">Geo Inconsistency</option>
+              <option value="POSSIBLE_DUPLICATE">Possible Duplicate</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Table Container -->
+        <div class="bg-white dark:bg-stone-900/90 rounded-2xl border border-stone-200/80 dark:border-stone-800 shadow-sm overflow-hidden">
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-xs">
+              <thead class="bg-stone-50 dark:bg-stone-800/70 border-b border-stone-200/80 dark:border-stone-800 text-stone-600 dark:text-stone-400 font-semibold uppercase tracking-wider text-[10px]">
                 <tr>
-                  <th class="px-3 py-2 text-left">State</th>
-                  <th class="px-3 py-2 text-right">Total</th>
-                  <th class="px-3 py-2 text-right">Approved</th>
-                  <th class="px-3 py-2 text-right">Pending</th>
-                  <th class="px-3 py-2 text-right">Rate</th>
-                  <th class="px-3 py-2 text-right">Anomalies</th>
+                  <th class="px-4 py-3">Claim ID & Claimant</th>
+                  <th class="px-4 py-3">Location</th>
+                  <th class="px-4 py-3">Type & Area</th>
+                  <th class="px-4 py-3">Status</th>
+                  <th class="px-4 py-3">Pending</th>
+                  <th class="px-4 py-3">Anomaly Score</th>
+                  <th class="px-4 py-3">Severity</th>
+                  <th class="px-4 py-3 text-right">Action</th>
                 </tr>
               </thead>
-              <tbody id="state-summary-table" class="divide-y divide-slate-100 font-mono">
-                <!-- Rendered dynamically -->
+              <tbody id="claims-table-body" class="divide-y divide-stone-100 dark:divide-stone-800">
+                <!-- Rendered dynamically by JS -->
               </tbody>
             </table>
           </div>
+
+          <!-- Pagination -->
+          <div class="flex items-center justify-between px-4 py-3 bg-stone-50 dark:bg-stone-900/60 border-t border-stone-200/80 dark:border-stone-800">
+            <span class="text-xs text-stone-500 dark:text-stone-400" id="pagination-info">Showing page 1</span>
+            <div class="flex items-center space-x-2">
+              <button onclick="prevPage()" id="btn-prev" class="px-3 py-1.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700 text-xs font-semibold disabled:opacity-50 transition cursor-pointer">Previous</button>
+              <button onclick="nextPage()" id="btn-next" class="px-3 py-1.5 bg-white dark:bg-stone-800 border border-stone-200 dark:border-stone-700 text-stone-700 dark:text-stone-300 rounded-lg hover:bg-stone-50 dark:hover:bg-stone-700 text-xs font-semibold disabled:opacity-50 transition cursor-pointer">Next</button>
+            </div>
+          </div>
         </div>
       </div>
 
-      <!-- PERFORMANCE CHART & RECENT ANOMALIES -->
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div class="lg:col-span-2 bg-white p-5 rounded-xl shadow-sm border border-slate-200">
-          <div class="flex justify-between items-center mb-4">
-            <div>
-              <h3 class="font-bold text-slate-900 text-sm">State Comparative Resolution Performance</h3>
-              <p class="text-xs text-slate-500">Approved, Pending, and Rejected claims distribution</p>
-            </div>
-            <span class="text-xs font-mono bg-indigo-50 text-indigo-700 px-2.5 py-1 rounded-md font-semibold">8 States Monitored</span>
-          </div>
-          <div class="h-64">
-            <canvas id="statePerformanceChart"></canvas>
-          </div>
-        </div>
-
-        <div class="bg-white p-5 rounded-xl shadow-sm border border-slate-200 flex flex-col justify-between">
-          <div>
-            <div class="flex justify-between items-center mb-3">
-              <h3 class="font-bold text-slate-900 text-sm">Flagged Claims Feed</h3>
-              <span class="text-[10px] bg-red-100 text-red-700 font-bold px-2 py-0.5 rounded">Highest Severity</span>
-            </div>
-            <div id="recent-anomalies-list" class="space-y-2 max-h-[235px] overflow-y-auto pr-1">
-              <!-- Rendered dynamically -->
-            </div>
-          </div>
-          <button onclick="navigateTo('claims')" class="w-full mt-3 bg-slate-50 hover:bg-slate-100 text-indigo-600 font-semibold text-xs py-2 rounded-lg border border-slate-200 transition text-center">
-            View All Claims in Explorer →
-          </button>
-        </div>
-      </div>
     </section>
 
-    <!-- PAGE 2: CLAIMS EXPLORER -->
-    <section id="page-claims" class="space-y-6 hidden">
-      <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <div class="flex items-center space-x-2 flex-wrap gap-y-1">
-            <h1 class="text-2xl font-bold text-slate-900">FRA Claims Explorer</h1>
-            <span class="bg-indigo-50 text-indigo-700 border border-indigo-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Synthetic Demo Records (750 Claims)</span>
-          </div>
-          <p class="text-xs text-slate-500">Filter, search, and audit individual and community forest claims (Simulated cadastre and anomaly evaluation)</p>
-        </div>
-        <div class="flex items-center space-x-2">
-          <button onclick="openDistrictDossierModal()" class="bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-xs transition">
-            <i data-lucide="printer" class="w-4 h-4 text-slate-600"></i>
-            <span>Export District Dossier (Print/PDF)</span>
-          </button>
-          <span class="bg-indigo-50 text-indigo-700 border border-indigo-200 px-3 py-1.5 rounded-lg text-xs font-mono font-bold" id="claims-count-badge">
-            Loading claims...
-          </span>
-        </div>
-      </div>
-
-      <!-- FILTER BAR -->
-      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 text-xs">
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">State</label>
-          <select id="filter-state" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
-            <option value="">All States</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">District</label>
-          <select id="filter-district" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
-            <option value="">All Districts</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">Status</label>
-          <select id="filter-status" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
-            <option value="">All Statuses</option>
-            <option value="Approved">Approved</option>
-            <option value="Pending">Pending</option>
-            <option value="Under Review">Under Review</option>
-            <option value="Rejected">Rejected</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">Severity</label>
-          <select id="filter-severity" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
-            <option value="">All Severities</option>
-            <option value="Critical">Critical (80+)</option>
-            <option value="High">High (60-79)</option>
-            <option value="Medium">Medium (40-59)</option>
-            <option value="Low">Low (20-39)</option>
-            <option value="Normal">Normal (0-19)</option>
-          </select>
-        </div>
-        <div>
-          <label class="block font-semibold text-slate-600 mb-1">Anomaly Type</label>
-          <select id="filter-anomaly" onchange="applyFilters()" class="w-full bg-slate-50 border border-slate-200 rounded-lg p-2 font-medium">
-            <option value="">All Types</option>
-            <option value="DELAYED_CLAIM">Processing Delay (>180d)</option>
-            <option value="LAND_RECORD_MISMATCH">Land Record Mismatch</option>
-            <option value="INCOMPLETE_DOCUMENTATION">Missing Documentation</option>
-            <option value="UNUSUAL_AREA">Unusual Land Area</option>
-            <option value="GEOGRAPHIC_INCONSISTENCY">Geographic Deviation</option>
-            <option value="HISTORICAL_CANOPY_CLEARING">Post-2005 Clearing Alert</option>
-            <option value="PROTECTED_ZONE_OVERLAP">Protected Habitat Buffer</option>
-          </select>
-        </div>
-      </div>
-
-      <!-- CLAIMS TABLE -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-xs text-left">
-            <thead class="bg-slate-50 text-slate-500 uppercase font-semibold">
-              <tr>
-                <th class="px-4 py-3">Claim ID & Claimant</th>
-                <th class="px-4 py-3">Location</th>
-                <th class="px-4 py-3">Type & Area</th>
-                <th class="px-4 py-3">Status</th>
-                <th class="px-4 py-3">Days Pending</th>
-                <th class="px-4 py-3">Anomaly Score</th>
-                <th class="px-4 py-3">Priority</th>
-                <th class="px-4 py-3">Action</th>
-              </tr>
-            </thead>
-            <tbody id="claims-table-body" class="divide-y divide-slate-100">
-              <!-- Rendered dynamically -->
-            </tbody>
-          </table>
-        </div>
-
-        <!-- PAGINATION -->
-        <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-          <span class="text-xs text-slate-500" id="pagination-info">Showing page 1</span>
-          <div class="flex space-x-2">
-            <button onclick="prevPage()" id="btn-prev" class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition">
-              Previous
-            </button>
-            <button onclick="nextPage()" id="btn-next" class="px-3 py-1.5 bg-white border border-slate-300 rounded-md text-xs font-semibold text-slate-700 hover:bg-slate-50 disabled:opacity-40 transition">
-              Next
-            </button>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- PAGE 3: CLAIM INTELLIGENCE (HERO PAGE) -->
     <section id="page-claim-detail" class="space-y-6 hidden">
-      <!-- Breadcrumb, Back & Voice Briefing -->
+      <!-- Breadcrumb, Back & Audio Briefing -->
       <div class="flex items-center justify-between flex-wrap gap-2">
-        <button onclick="navigateBack()" class="inline-flex items-center text-xs font-semibold text-indigo-600 hover:text-indigo-800 space-x-1 cursor-pointer">
+        <button onclick="navigateBack()" class="inline-flex items-center text-xs font-semibold text-amber-600 dark:text-amber-400 hover:text-amber-800 dark:hover:text-amber-300 space-x-1 cursor-pointer">
           <i data-lucide="arrow-left" class="w-4 h-4"></i>
           <span id="back-nav-text">Back to Dashboard</span>
         </button>
 
         <div class="flex items-center space-x-2">
           <!-- Voice Audio Briefing Button -->
-          <button id="btn-audio-briefing" onclick="toggleAudioBriefing()" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg border border-indigo-400 shadow-xs flex items-center space-x-1.5 transition">
+          <button id="btn-audio-briefing" onclick="toggleAudioBriefing()" class="bg-amber-600 hover:bg-amber-500 text-white text-xs font-bold px-3.5 py-1.5 rounded-lg border border-amber-400 shadow-2xs flex items-center space-x-1.5 transition">
             <i data-lucide="volume-2" class="w-4 h-4" id="audio-icon"></i>
             <span id="audio-btn-label">🎧 Listen to Officer Briefing</span>
           </button>
-          <span class="text-xs bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md font-mono font-bold" id="detail-badge-id">CLAIM</span>
+          <span class="text-xs bg-stone-200 dark:bg-stone-800 text-stone-800 dark:text-stone-200 px-2.5 py-1 rounded-md font-mono font-bold" id="detail-badge-id">CLAIM</span>
         </div>
       </div>
 
       <!-- Claim Title Header -->
-      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <div class="flex items-center space-x-3 flex-wrap gap-y-2">
-            <h1 class="text-3xl font-extrabold text-slate-900 tracking-tight" id="detail-claim-id">DEMO-003</h1>
+            <h1 class="text-3xl font-extrabold text-stone-900 dark:text-white tracking-tight" id="detail-claim-id">DEMO-003</h1>
             <span id="detail-severity-pill"></span>
             <span id="detail-status-pill"></span>
             <span id="detail-cutoff-pill" class="text-xs px-2.5 py-0.5 rounded-md border font-semibold"></span>
-            <span class="text-[10px] bg-slate-100 text-slate-600 border border-slate-300 font-bold px-2 py-0.5 rounded tracking-wide uppercase">Synthetic Demo Record</span>
+            <span class="text-[10px] bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-300 dark:border-stone-700 font-bold px-2 py-0.5 rounded tracking-wide uppercase">Synthetic Demo Record</span>
           </div>
-          <div class="flex items-center space-x-2 text-slate-500 mt-2 text-sm flex-wrap">
-            <i data-lucide="map-pin" class="w-4 h-4 text-slate-400"></i>
+          <div class="flex items-center space-x-2 text-stone-500 dark:text-stone-400 mt-2 text-sm flex-wrap">
+            <i data-lucide="map-pin" class="w-4 h-4 text-stone-400"></i>
             <span id="detail-location">Seoni, Madhya Pradesh</span>
-            <span class="text-slate-300">•</span>
-            <span>Claimant: <strong class="text-slate-800" id="detail-claimant">Bhuri Bai Korku</strong></span>
-            <span class="text-slate-300">•</span>
+            <span class="text-stone-300 dark:text-stone-700">•</span>
+            <span>Claimant: <strong class="text-stone-800 dark:text-stone-200" id="detail-claimant">Bhuri Bai Korku</strong></span>
+            <span class="text-stone-300 dark:text-stone-700">•</span>
             <span id="detail-type-area">Individual Claim (8.5 acres)</span>
           </div>
         </div>
 
         <div class="flex items-center space-x-4">
           <div class="text-right">
-            <div class="text-xs text-slate-400 uppercase tracking-wider font-semibold">Statutory Processing</div>
-            <div class="text-xl font-bold text-slate-900 flex items-center justify-end space-x-1">
+            <div class="text-xs text-stone-400 uppercase tracking-wider font-semibold">Statutory Processing</div>
+            <div class="text-xl font-bold text-stone-900 dark:text-white flex items-center justify-end space-x-1">
               <i data-lucide="clock" class="w-5 h-5 text-amber-500"></i>
-              <span id="detail-days-pending">187</span> <span class="text-sm font-normal text-slate-500">days pending</span>
+              <span id="detail-days-pending" class="font-mono">187</span> <span class="text-sm font-normal text-stone-500 dark:text-stone-400">days pending</span>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- TWO COLUMN HERO LAYOUT -->
+      <!-- TWO-COLUMN HERO LAYOUT: EXPLAINABILITY SPLIT -->
       <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
         
-        <!-- LEFT COLUMN: ANOMALY METER, SATELLITE 2005 CUT-OFF, FLAGGED ISSUES, EVIDENCE -->
+        <!-- LEFT COLUMN (6 cols): DETECTED BY RULES / DATA (GROUND TRUTH EVIDENCE) -->
         <div class="lg:col-span-6 space-y-6">
           
+          <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-300 border-b border-stone-200 dark:border-stone-800 pb-2">
+            <i data-lucide="binary" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+            <span>Detected by Rules & Spatial Data (Ground Truth)</span>
+          </div>
+
           <!-- Anomaly Score Meter Card -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
             <div class="flex justify-between items-center mb-3">
               <div>
-                <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-1.5">
-                  <i data-lucide="gauge" class="w-4 h-4 text-indigo-600"></i>
+                <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-1.5">
+                  <i data-lucide="gauge" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
                   <span>Calculated Anomaly Score</span>
                 </h3>
-                <p class="text-xs text-slate-500">Transparent Rule-Based Composite Evaluation</p>
+                <p class="text-xs text-stone-500 dark:text-stone-400">Transparent Rule-Based Composite Evaluation</p>
               </div>
               <div class="text-right">
-                <span class="text-2xl font-black text-slate-900" id="detail-score-number">80</span>
-                <span class="text-xs text-slate-400 font-semibold">/ 100</span>
+                <span class="text-2xl font-black text-stone-900 dark:text-white font-mono" id="detail-score-number">80</span>
+                <span class="text-xs text-stone-400 font-semibold">/ 100</span>
               </div>
             </div>
 
             <!-- Progress Bar -->
-            <div class="w-full bg-slate-100 rounded-full h-3.5 overflow-hidden p-0.5 border border-slate-200">
+            <div class="w-full bg-stone-100 dark:bg-stone-800 rounded-full h-3.5 overflow-hidden p-0.5 border border-stone-200 dark:border-stone-700">
               <div id="detail-score-bar" class="h-full rounded-full transition-all duration-500 bg-red-600" style="width: 80%"></div>
             </div>
 
             <!-- Score Threshold Bands -->
-            <div class="flex justify-between text-[10px] font-semibold text-slate-400 mt-2 px-1">
+            <div class="flex justify-between text-[10px] font-semibold text-stone-400 mt-2 px-1">
               <span>0 Normal</span>
               <span>20 Low</span>
               <span>40 Medium</span>
               <span>60 High</span>
-              <span class="text-red-600 font-bold">80+ Critical</span>
+              <span class="text-red-600 dark:text-red-400 font-bold">80+ Critical</span>
             </div>
           </div>
 
-          <!-- NEW UNIQUE FEATURE 1: SATELLITE & TEMPORAL FOREST CANOPY (NDVI) INSPECTOR -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
+          <!-- SATELLITE TEMPORAL FOREST CANOPY (NDVI) INSPECTOR -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 space-y-4">
             <div class="flex items-center justify-between">
-              <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                <i data-lucide="satellite" class="w-4 h-4 text-indigo-600"></i>
-                <span>Satellite Temporal NDVI & FRA 2005 Cut-Off Analysis</span>
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-2">
+                <i data-lucide="satellite" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                <span>Satellite Temporal NDVI & FRA 2005 Cut-Off</span>
               </h3>
-              <span class="bg-indigo-50 text-indigo-700 text-[10px] font-bold px-2 py-0.5 rounded border border-indigo-200">
+              <span class="bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 text-[10px] font-bold px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
                 Sec 4(3) Statutory Cut-Off
               </span>
             </div>
-            <p class="text-[11px] text-slate-500">
-              Evaluates historical multi-spectral Landsat/Sentinel vegetation index at claim coordinates to confirm occupation prior to <strong>13 December 2005</strong>.
+            <p class="text-[11px] text-stone-500 dark:text-stone-400">
+              Evaluates historical multi-spectral Landsat/Sentinel vegetation index at claim coordinates to verify occupation prior to <strong>13 December 2005</strong>.
             </p>
 
             <!-- 3-Epoch Comparison Grid -->
@@ -532,25 +969,25 @@
             </div>
           </div>
 
-          <!-- NEW UNIQUE FEATURE 2: PROTECTED FOREST & ECO-SENSITIVE ZONE GEO-FENCING -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-3">
+          <!-- PROTECTED FOREST & ECO-SENSITIVE ZONE GEO-FENCING -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 space-y-3">
             <div class="flex items-center justify-between">
-              <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                <i data-lucide="trees" class="w-4 h-4 text-emerald-600"></i>
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-2">
+                <i data-lucide="trees" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
                 <span>Protected Forest & Habitat Geo-Fencing</span>
               </h3>
-              <span class="bg-emerald-50 text-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200">
+              <span class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
                 FRA Sec 4(2) Safe Buffer
               </span>
             </div>
-            <div id="protected-zone-box" class="p-3 rounded-lg border border-slate-200 text-xs">
+            <div id="protected-zone-box" class="p-3 rounded-lg border border-stone-200 dark:border-stone-800 text-xs">
               <!-- Dynamically populated -->
             </div>
           </div>
 
-          <!-- FLAGGED ISSUES CARD -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center space-x-2">
+          <!-- FLAGGED DETECTION SIGNALS -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
+            <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm mb-3 flex items-center space-x-2">
               <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
               <span>Flagged Detection Signals</span>
             </h3>
@@ -559,75 +996,81 @@
             </div>
           </div>
 
-          <!-- EXPLAINABLE EVIDENCE PANEL -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center space-x-2">
-              <i data-lucide="scale" class="w-4 h-4 text-indigo-600"></i>
-              <span>Explainable Quantitative Evidence</span>
+          <!-- EXPLAINABLE QUANTITATIVE EVIDENCE -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
+            <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm mb-2 flex items-center space-x-2">
+              <i data-lucide="scale" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+              <span>Quantitative Baseline Comparisons</span>
             </h3>
-            <p class="text-[11px] text-slate-500 mb-3">Auditable metrics comparing claim values to district & state baselines</p>
+            <p class="text-[11px] text-stone-500 dark:text-stone-400 mb-3">Auditable metrics comparing claim values to statutory and district benchmarks</p>
             <div id="detail-anomaly-evidence" class="space-y-3">
               <!-- Rendered dynamically from /api/anomalies/{id} -->
             </div>
           </div>
 
-          <!-- RAW EVIDENCE PANEL -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
-            <h3 class="font-bold text-slate-900 text-sm mb-3 flex items-center space-x-2">
-              <i data-lucide="file-check" class="w-4 h-4 text-slate-600"></i>
+          <!-- GROUND TRUTH CLAIM RECORDS GRID -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
+            <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm mb-3 flex items-center space-x-2">
+              <i data-lucide="file-check" class="w-4 h-4 text-stone-500"></i>
               <span>Ground Truth Claim Records</span>
             </h3>
             <div class="grid grid-cols-2 gap-3 text-xs" id="detail-evidence-grid">
               <!-- Rendered dynamically -->
             </div>
           </div>
+
         </div>
 
-        <!-- RIGHT COLUMN: MINI MAP, AI DECISION SUPPORT, OFFICER WORKFLOW CONSOLE & AUDIT TRAIL -->
+        <!-- RIGHT COLUMN (6 cols): AI DECISION SUPPORT (GEMINI) & OFFICER DISPOSITION -->
         <div class="lg:col-span-6 space-y-6">
           
-          <!-- Mini Geographic Plot Map -->
-          <div class="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-            <div class="px-4 py-2.5 bg-slate-50 border-b border-slate-200 flex justify-between items-center text-xs">
-              <span class="font-bold text-slate-700 flex items-center space-x-1.5">
-                <i data-lucide="crosshair" class="w-3.5 h-3.5 text-indigo-600"></i>
-                <span>Geospatial Plot & Forest Beat Buffer</span>
-              </span>
-              <span class="text-slate-500 font-mono" id="detail-coords">22.0853° N, 79.5511° E</span>
-            </div>
-            <div id="mini-map" class="h-[220px] w-full z-0"></div>
+          <div class="flex items-center space-x-2 text-xs font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 border-b border-stone-200 dark:border-stone-800 pb-2">
+            <i data-lucide="sparkles" class="w-4 h-4 text-amber-500"></i>
+            <span>AI Assessment & Decision Support (Gemini 2.5 Flash)</span>
           </div>
 
-          <!-- AI INTELLIGENCE & DECISION SUPPORT (DARK CARD) -->
-          <div class="bg-slate-900 rounded-xl p-6 shadow-xl border border-slate-800 text-white relative overflow-hidden">
+          <!-- Mini Geographic Plot Map -->
+          <div class="bg-white dark:bg-stone-900/80 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 overflow-hidden">
+            <div class="px-4 py-2.5 bg-stone-50 dark:bg-stone-900/60 border-b border-stone-200 dark:border-stone-800 flex justify-between items-center text-xs">
+              <span class="font-bold text-stone-700 dark:text-stone-300 flex items-center space-x-1.5">
+                <i data-lucide="crosshair" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+                <span>Geospatial Plot & Forest Beat Buffer</span>
+              </span>
+              <span class="text-stone-500 font-mono" id="detail-coords">22.0853° N, 79.5511° E</span>
+            </div>
+            <div id="mini-map" class="h-[200px] w-full z-0"></div>
+          </div>
+
+          <!-- AI ASSESSMENT CARD (Authoritative Administrative Memo) -->
+          <div class="bg-stone-900 dark:bg-[#0B101E] rounded-xl p-6 shadow-lg border border-stone-800 dark:border-amber-950 text-white relative overflow-hidden">
             <div class="absolute -right-6 -bottom-6 opacity-5 pointer-events-none">
-              <i data-lucide="sparkles" class="w-64 h-64 text-indigo-400"></i>
+              <i data-lucide="sparkles" class="w-64 h-64 text-amber-400"></i>
             </div>
 
-            <div class="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+            <div class="flex items-center justify-between mb-4 pb-3 border-b border-stone-800">
               <div class="flex items-center space-x-2.5">
-                <div class="bg-indigo-600/30 p-2 rounded-lg text-indigo-400 border border-indigo-500/30">
+                <div class="bg-amber-600/30 p-2 rounded-lg text-amber-400 border border-amber-500/30">
                   <i data-lucide="sparkles" class="w-5 h-5"></i>
                 </div>
                 <div>
                   <h3 class="font-bold text-base text-white">AI Decision Support Engine</h3>
-                  <p class="text-xs text-indigo-300/80">Automated Synthesis & Prioritized Recommendations</p>
+                  <p class="text-xs text-amber-300/80">Gemini 2.5 Flash • Analytical Administrative Briefing</p>
                 </div>
               </div>
-              <span class="bg-indigo-900/60 text-indigo-200 border border-indigo-700/50 text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider">
+              <span class="bg-amber-900/60 text-amber-200 border border-amber-700/50 text-[10px] font-semibold px-2 py-0.5 rounded uppercase tracking-wider">
                 Intelligence Layer
               </span>
             </div>
 
             <!-- Pre-Analysis CTA -->
             <div id="ai-cta-state" class="text-center py-6">
-              <p class="text-xs text-slate-300 max-w-md mx-auto mb-5 leading-relaxed">
+              <p class="text-xs text-stone-300 max-w-md mx-auto mb-5 leading-relaxed">
                 Synthesize all quantitative flags, satellite vegetation changes, and district records into an actionable administrative brief for SDLC/DLC review.
               </p>
               <button 
                 onclick="runAIAnalysis()" 
                 id="btn-run-ai"
-                class="bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-indigo-500/25 transition-all flex items-center space-x-2 mx-auto"
+                class="bg-amber-600 hover:bg-amber-500 text-white font-bold text-sm px-6 py-2.5 rounded-lg shadow-lg hover:shadow-amber-500/25 transition-all flex items-center space-x-2 mx-auto"
               >
                 <i data-lucide="sparkles" class="w-4 h-4"></i>
                 <span>Analyze with AI</span>
@@ -636,28 +1079,28 @@
 
             <!-- Loading State -->
             <div id="ai-loading-state" class="py-10 text-center hidden">
-              <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-indigo-500 border-t-transparent mb-3"></div>
-              <p class="text-sm font-medium text-indigo-200">Synthesizing claim signals & evidence...</p>
-              <p class="text-xs text-slate-400 mt-1">Generating prioritized verification recommendation</p>
+              <div class="inline-block animate-spin rounded-full h-8 w-8 border-2 border-amber-500 border-t-transparent mb-3"></div>
+              <p class="text-sm font-medium text-amber-200">Synthesizing claim signals & evidence...</p>
+              <p class="text-xs text-stone-400 mt-1">Generating prioritized verification recommendation</p>
             </div>
 
             <!-- Completed AI Report -->
             <div id="ai-report-state" class="space-y-4 hidden text-xs">
               <!-- Summary paragraph -->
-              <div class="bg-slate-800/80 p-3.5 rounded-lg border border-slate-700/80">
-                <div class="text-[10px] font-bold uppercase tracking-wider text-indigo-300 mb-1">Executive Summary</div>
-                <p class="text-slate-200 leading-relaxed text-xs" id="ai-summary-text"></p>
+              <div class="bg-stone-800/80 p-3.5 rounded-lg border border-stone-700/80">
+                <div class="text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-1">Executive Summary</div>
+                <p class="text-stone-200 leading-relaxed text-xs" id="ai-summary-text"></p>
               </div>
 
               <!-- Why Flagged List -->
-              <div class="bg-slate-800/50 p-3.5 rounded-lg border border-slate-700/60">
+              <div class="bg-stone-800/50 p-3.5 rounded-lg border border-stone-700/60">
                 <div class="text-[10px] font-bold uppercase tracking-wider text-amber-300 mb-2">Why This Claim Was Flagged</div>
-                <ul class="space-y-1 text-slate-300 pl-4 list-disc" id="ai-why-flagged-list"></ul>
+                <ul class="space-y-1 text-stone-300 pl-4 list-disc" id="ai-why-flagged-list"></ul>
               </div>
 
               <!-- Recommended Action (Highlight Box) -->
-              <div class="bg-indigo-950/70 p-4 rounded-lg border border-indigo-500/40">
-                <div class="flex items-center space-x-1.5 text-indigo-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
+              <div class="bg-amber-950/80 p-4 rounded-lg border border-amber-500/40">
+                <div class="flex items-center space-x-1.5 text-amber-300 font-bold uppercase tracking-wider text-[11px] mb-1.5">
                   <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
                   <span>Recommended Administrative Action</span>
                 </div>
@@ -665,13 +1108,13 @@
               </div>
 
               <!-- Disclaimer -->
-              <p class="text-[10px] text-slate-400 pt-2 border-t border-slate-800 italic" id="ai-disclaimer-text">
+              <p class="text-[10px] text-stone-400 pt-2 border-t border-stone-800 italic" id="ai-disclaimer-text">
                 This intelligence assessment is generated for administrative decision support. It prioritizes claims for inspection and does not constitute a legal determination.
               </p>
 
               <!-- Re-run button -->
               <div class="text-right pt-1">
-                <button onclick="runAIAnalysis()" class="text-indigo-400 hover:text-indigo-300 text-[11px] font-medium inline-flex items-center space-x-1">
+                <button onclick="runAIAnalysis()" class="text-amber-400 hover:text-amber-300 text-[11px] font-medium inline-flex items-center space-x-1">
                   <i data-lucide="refresh-cw" class="w-3 h-3"></i>
                   <span>Re-analyze</span>
                 </button>
@@ -680,25 +1123,25 @@
 
           </div>
 
-          <!-- NEW UNIQUE FEATURE 3: OFFICER ADMINISTRATIVE ACTION CONSOLE & DISPOSITION WORKFLOW -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 space-y-4">
-            <div class="flex items-center justify-between border-b border-slate-200 pb-3">
+          <!-- OFFICER ADMINISTRATIVE ACTION CONSOLE & DISPOSITION WORKFLOW -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 space-y-4">
+            <div class="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
               <div>
-                <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                  <i data-lucide="stamp" class="w-4 h-4 text-indigo-600"></i>
-                  <span>Officer Administrative Action & Disposition Console</span>
+                <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-2">
+                  <i data-lucide="stamp" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
+                  <span>Officer Administrative Action Console</span>
                 </h3>
-                <p class="text-xs text-slate-500">Record official statutory next steps and generate legal notices</p>
+                <p class="text-xs text-stone-500 dark:text-stone-400">Record official statutory next steps and generate legal notices</p>
               </div>
-              <span class="text-[10px] bg-indigo-50 text-indigo-700 font-bold px-2 py-0.5 rounded border border-indigo-200">
+              <span class="text-[10px] bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
                 SDLC / DLC Active
               </span>
             </div>
 
             <form id="officer-action-form" onsubmit="submitOfficerAction(event)" class="space-y-3 text-xs">
               <div>
-                <label class="block font-semibold text-slate-700 mb-1">Administrative Action / Order</label>
-                <select id="action-type-select" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 font-medium text-slate-800 focus:ring-2 focus:ring-indigo-500">
+                <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Administrative Action / Directive</label>
+                <select id="action-type-select" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 font-medium text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-amber-500">
                   <option value="JOINT_SURVEY_ORDERED">Order Joint Field Cadastral Survey (SDLC + Forest + Revenue)</option>
                   <option value="GRAM_SABHA_NOTICE">Issue Formal Clarification Notice to Gram Sabha (Form-C Inquiry)</option>
                   <option value="DLC_RECOMMENDED">Recommend for DLC Approval (Title Sanction with Caveat)</option>
@@ -709,43 +1152,43 @@
 
               <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div>
-                  <label class="block font-semibold text-slate-700 mb-1">Officer Name</label>
-                  <input type="text" id="action-officer-name" value="Dr. Alok Ranjan, IAS" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800" required />
+                  <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Officer Name</label>
+                  <input type="text" id="action-officer-name" value="Dr. Alok Ranjan, IAS" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 text-stone-800 dark:text-stone-200" required />
                 </div>
                 <div>
-                  <label class="block font-semibold text-slate-700 mb-1">Designation & Committee</label>
-                  <input type="text" id="action-officer-desig" value="SDM & SDLC Committee Chair" class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800" required />
+                  <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Designation & Committee</label>
+                  <input type="text" id="action-officer-desig" value="SDM & SDLC Committee Chair" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 text-stone-800 dark:text-stone-200" required />
                 </div>
               </div>
 
               <div>
-                <label class="block font-semibold text-slate-700 mb-1">Official Notes / Inquiry Instructions</label>
-                <textarea id="action-remarks" rows="2" placeholder="Specify instructions for beat guard, survey chainman, or Gram Sabha..." class="w-full bg-slate-50 border border-slate-300 rounded-lg p-2 text-slate-800"></textarea>
+                <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Official Notes / Inquiry Instructions</label>
+                <textarea id="action-remarks" rows="2" placeholder="Specify instructions for beat guard, survey chainman, or Gram Sabha..." class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 text-stone-800 dark:text-stone-200"></textarea>
               </div>
 
               <div class="flex items-center justify-between pt-2 gap-2">
-                <button type="submit" id="btn-submit-action" class="bg-indigo-600 hover:bg-indigo-700 text-white font-bold px-4 py-2 rounded-lg shadow-sm transition flex items-center space-x-1.5">
+                <button type="submit" id="btn-submit-action" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-lg shadow-2xs transition flex items-center space-x-1.5">
                   <i data-lucide="check" class="w-3.5 h-3.5"></i>
                   <span>Record Administrative Disposition</span>
                 </button>
-                <button type="button" onclick="openOfficialNoticeMemo()" class="bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold px-3 py-2 rounded-lg border border-slate-300 transition flex items-center space-x-1.5">
-                  <i data-lucide="file-text" class="w-3.5 h-3.5 text-indigo-600"></i>
+                <button type="button" onclick="openOfficialNoticeMemo()" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 transition flex items-center space-x-1.5">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
                   <span>View Official Notice Memo</span>
                 </button>
               </div>
             </form>
           </div>
 
-          <!-- DIGITAL AUDIT TRAIL CARD -->
-          <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+          <!-- DIGITAL AUDIT TRAIL & PROCEDURAL TIMELINE -->
+          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
             <div class="flex justify-between items-center mb-3">
-              <h3 class="font-bold text-slate-900 text-sm flex items-center space-x-2">
-                <i data-lucide="history" class="w-4 h-4 text-slate-600"></i>
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-2">
+                <i data-lucide="history" class="w-4 h-4 text-stone-500"></i>
                 <span>Digital Audit Trail & Procedural History</span>
               </h3>
-              <span class="text-[10px] text-slate-400 font-mono" id="audit-trail-count">0 events</span>
+              <span class="text-[10px] text-stone-400 font-mono" id="audit-trail-count">0 events</span>
             </div>
-            <div id="audit-trail-timeline" class="space-y-3 text-xs max-h-56 overflow-y-auto pr-1">
+            <div id="audit-trail-timeline" class="space-y-3 text-xs max-h-52 overflow-y-auto pr-1">
               <!-- Dynamically populated -->
             </div>
           </div>
@@ -754,69 +1197,71 @@
       </div>
     </section>
 
-    <!-- PAGE 4: STATE INTELLIGENCE & POLICY SIMULATOR -->
+    <!-- ================================================================= -->
+    <!-- PAGE 4: STATE INTELLIGENCE & POLICY SIMULATOR                     -->
+    <!-- ================================================================= -->
     <section id="page-states" class="space-y-6 hidden">
       <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 class="text-2xl font-bold text-slate-900">State-wise FRA Performance & Intelligence</h1>
-          <p class="text-xs text-slate-500">Official Ministry of Tribal Affairs (MoTA) aggregate statistics alongside synthetic demo claim samples</p>
+          <h1 class="text-2xl font-bold text-stone-900 dark:text-stone-100">State-wise FRA Performance & Intelligence</h1>
+          <p class="text-xs text-stone-500 dark:text-stone-400">Official Ministry of Tribal Affairs (MoTA) aggregate statistics alongside synthetic demo claim samples</p>
         </div>
       </div>
 
       <!-- OFFICIAL MOTA BENCHMARK REFERENCE CARD -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4">
-        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+      <div class="bg-white dark:bg-stone-900/80 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 p-5 space-y-4">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-stone-100 dark:border-stone-800 pb-3">
           <div class="flex items-center space-x-3">
-            <span class="bg-indigo-100 text-indigo-700 p-2 rounded-lg font-bold text-xs">
+            <span class="bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400 p-2 rounded-lg font-bold text-xs">
               <i data-lucide="landmark" class="w-5 h-5"></i>
             </span>
             <div>
               <div class="flex items-center space-x-2 flex-wrap">
-                <h2 class="text-base font-bold text-slate-900">Official Ministry of Tribal Affairs (MoTA) National Benchmark</h2>
-                <span class="bg-emerald-50 text-emerald-700 border border-emerald-200 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Government Baseline</span>
+                <h2 class="text-base font-bold text-stone-900 dark:text-stone-100">Official Ministry of Tribal Affairs (MoTA) National Benchmark</h2>
+                <span class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800 text-[10px] font-bold px-2 py-0.5 rounded uppercase">Government Baseline</span>
               </div>
-              <p class="text-xs text-slate-500">Authoritative aggregate statistics tabled in Parliament (Ministry of Tribal Affairs MPR, March 2026)</p>
+              <p class="text-xs text-stone-500 dark:text-stone-400">Authoritative aggregate statistics tabled in Parliament (Ministry of Tribal Affairs MPR, March 2026)</p>
             </div>
           </div>
           <div class="text-right sm:text-right text-left">
-            <a href="https://tribal.nic.in/FRA.aspx" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 text-xs text-indigo-600 font-semibold hover:underline">
+            <a href="https://tribal.nic.in/FRA.aspx" target="_blank" rel="noopener noreferrer" class="inline-flex items-center space-x-1 text-xs text-amber-600 dark:text-amber-400 font-semibold hover:underline">
               <span>Official MoTA Portal</span>
               <i data-lucide="external-link" class="w-3.5 h-3.5"></i>
             </a>
-            <div class="text-[10px] text-slate-400">tribal.nic.in/FRA.aspx</div>
+            <div class="text-[10px] text-stone-400">tribal.nic.in/FRA.aspx</div>
           </div>
         </div>
 
         <!-- 4 National Benchmark KPIs -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <span class="text-[10px] uppercase font-bold tracking-wider text-slate-500 block">Total Claims Received</span>
-            <span class="text-xl font-black text-slate-900" id="official-total-claims">3,460,818</span>
-            <span class="text-[10px] text-slate-400 block mt-0.5">Across 8 monitored states</span>
+          <div class="bg-stone-50 dark:bg-[#161f30] p-3 rounded-lg border border-stone-100 dark:border-stone-800/80">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-amber-700 dark:text-amber-400 block">Total Claims Received</span>
+            <span class="text-xl font-black text-stone-900 dark:text-white font-mono" id="official-total-claims">3,460,818</span>
+            <span class="text-[10px] text-stone-400 block mt-0.5">Across 8 monitored states</span>
           </div>
-          <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <span class="text-[10px] uppercase font-bold tracking-wider text-emerald-600 block">Titles Distributed</span>
-            <span class="text-xl font-black text-emerald-700" id="official-total-titles">1,904,679</span>
+          <div class="bg-stone-50 dark:bg-[#161f30] p-3 rounded-lg border border-stone-100 dark:border-stone-800/80">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-emerald-600 dark:text-emerald-400 block">Titles Distributed</span>
+            <span class="text-xl font-black text-emerald-700 dark:text-emerald-400 font-mono" id="official-total-titles">1,904,679</span>
             <span class="text-[10px] text-emerald-600/80 block mt-0.5">Individual & Community Titles</span>
           </div>
-          <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-600 block">Forest Extent Recognized</span>
-            <span class="text-xl font-black text-indigo-700" id="official-total-acres">11.29M <span class="text-xs font-normal text-slate-500">acres</span></span>
-            <span class="text-[10px] text-slate-400 block mt-0.5">~4.57 Million Hectares</span>
+          <div class="bg-stone-50 dark:bg-[#161f30] p-3 rounded-lg border border-stone-100 dark:border-stone-800/80">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-amber-600 dark:text-amber-400 block">Forest Extent Recognized</span>
+            <span class="text-xl font-black text-amber-700 dark:text-amber-400 font-mono" id="official-total-acres">11.29M <span class="text-xs font-normal text-stone-500">acres</span></span>
+            <span class="text-[10px] text-stone-400 block mt-0.5">~4.57 Million Hectares</span>
           </div>
-          <div class="bg-slate-50 p-3 rounded-lg border border-slate-100">
-            <span class="text-[10px] uppercase font-bold tracking-wider text-blue-600 block">Avg Title Recognition Rate</span>
-            <span class="text-xl font-black text-blue-700" id="official-avg-rate">55.0%</span>
-            <span class="text-[10px] text-slate-400 block mt-0.5">National benchmark disposal rate</span>
+          <div class="bg-stone-50 dark:bg-[#161f30] p-3 rounded-lg border border-stone-100 dark:border-stone-800/80">
+            <span class="text-[10px] uppercase font-bold tracking-wider text-blue-600 dark:text-blue-400 block">Avg Title Recognition Rate</span>
+            <span class="text-xl font-black text-blue-700 dark:text-blue-400 font-mono" id="official-avg-rate">55.0%</span>
+            <span class="text-[10px] text-stone-400 block mt-0.5">National benchmark disposal rate</span>
           </div>
         </div>
 
-        <!-- Explicit Data Architecture Distinction Note -->
-        <div class="bg-blue-50/60 border border-blue-200/70 rounded-lg p-3 text-xs text-blue-900 flex items-start space-x-2.5">
-          <i data-lucide="layers" class="w-4 h-4 text-blue-600 shrink-0 mt-0.5"></i>
+        <!-- Data Architecture Distinction Note -->
+        <div class="bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/50 rounded-lg p-3 text-xs text-blue-900 dark:text-blue-200 flex items-start space-x-2.5">
+          <i data-lucide="layers" class="w-4 h-4 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5"></i>
           <div>
-            <span class="font-bold text-blue-950">Dual-Layer Architecture Distinction:</span>
-            <span class="text-blue-800 ml-1">
+            <span class="font-bold text-blue-950 dark:text-blue-100">Dual-Layer Architecture Distinction:</span>
+            <span class="text-blue-800 dark:text-blue-300 ml-1">
               <strong>Layer 1 (Official MoTA Aggregates):</strong> Authentic state/national totals used for administrative context and governance tracking.
               <strong>Layer 2 (Synthetic Claim Dataset — 750 Records):</strong> High-fidelity synthetic records used for WebGIS spatial points, cadastral mismatch detection, and AI review explanations. Synthetic claims are never represented as official government submissions.
             </span>
@@ -824,10 +1269,55 @@
         </div>
       </div>
 
+      <!-- STATE COMPARATIVE RESOLUTION PERFORMANCE & SUMMARY TABLE -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-5">
+        <!-- State Performance Stacked Bar Chart -->
+        <div class="lg:col-span-7 bg-white dark:bg-stone-900/80 p-5 rounded-2xl shadow-2xs border border-stone-200/80 dark:border-stone-800 flex flex-col justify-between">
+          <div class="flex justify-between items-center mb-4">
+            <div>
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm">State Comparative Resolution Performance</h3>
+              <p class="text-xs text-stone-500 dark:text-stone-400">Approved, Pending, and Rejected claims distribution</p>
+            </div>
+            <span class="text-xs font-mono bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 border border-amber-100 dark:border-amber-800 px-2.5 py-1 rounded-md font-semibold">8 States Monitored</span>
+          </div>
+          <div class="h-64">
+            <canvas id="statePerformanceChart"></canvas>
+          </div>
+        </div>
+
+        <!-- STATE-WISE PROGRESS SUMMARY TABLE -->
+        <div class="lg:col-span-5 bg-white dark:bg-stone-900/80 p-5 rounded-2xl shadow-2xs border border-stone-200/80 dark:border-stone-800 overflow-hidden flex flex-col justify-between">
+          <div class="mb-3 flex justify-between items-center">
+            <div>
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm" id="txt-state-prog-title">State-wise Progress Summary</h3>
+              <p class="text-xs text-stone-500 dark:text-stone-400">Click any state row to filter & zoom</p>
+            </div>
+            <span class="text-[10px] text-stone-400 dark:text-stone-500 uppercase font-semibold">Interactive Grid</span>
+          </div>
+          <div class="overflow-x-auto max-h-[250px] overflow-y-auto">
+            <table class="min-w-full text-xs">
+              <thead class="bg-stone-50 dark:bg-stone-800/70 text-stone-500 dark:text-stone-400 uppercase font-semibold sticky top-0">
+                <tr>
+                  <th class="px-2.5 py-2 text-left">State</th>
+                  <th class="px-2.5 py-2 text-right">Total</th>
+                  <th class="px-2.5 py-2 text-right">Approved</th>
+                  <th class="px-2.5 py-2 text-right">Pending</th>
+                  <th class="px-2.5 py-2 text-right">Rate</th>
+                  <th class="px-2.5 py-2 text-right">Anomalies</th>
+                </tr>
+              </thead>
+              <tbody id="state-summary-table" class="divide-y divide-stone-100 dark:divide-stone-800 font-mono">
+                <!-- Rendered dynamically -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- State Cards Grid Header -->
       <div class="flex items-center justify-between">
-        <h3 class="text-sm font-bold text-slate-800 uppercase tracking-wider">State Profiles & Monitored Samples (Click state to inspect)</h3>
-        <span class="text-xs text-slate-400">8 States Monitored</span>
+        <h3 class="text-sm font-bold text-stone-800 dark:text-stone-200 uppercase tracking-wider">State Profiles & Monitored Samples (Click state to inspect)</h3>
+        <span class="text-xs text-stone-400">8 States Monitored</span>
       </div>
 
       <!-- State Cards Grid -->
@@ -835,17 +1325,17 @@
         <!-- Rendered dynamically -->
       </div>
 
-      <!-- NEW UNIQUE FEATURE 6: WHAT-IF POLICY BACKLOG CLEARANCE SIMULATOR -->
-      <div class="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 text-white p-6 rounded-xl shadow-lg border border-slate-800 space-y-5">
-        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-800 pb-3">
+      <!-- WHAT-IF POLICY BACKLOG CLEARANCE SIMULATOR -->
+      <div class="bg-gradient-to-br from-stone-900 via-stone-950 to-stone-900 text-white p-6 rounded-xl shadow-lg border border-stone-800 space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-stone-800 pb-3">
           <div>
             <div class="flex items-center space-x-2">
-              <span class="bg-indigo-500/30 text-indigo-300 border border-indigo-400/40 p-1.5 rounded-lg">
+              <span class="bg-amber-500/30 text-amber-300 border border-amber-400/40 p-1.5 rounded-lg">
                 <i data-lucide="sliders" class="w-4 h-4"></i>
               </span>
               <h2 class="text-lg font-bold tracking-tight text-white">What-If Policy Simulator: Backlog Clearance Forecast</h2>
             </div>
-            <p class="text-xs text-indigo-300/80 mt-1">Simulate administrative interventions (mobile survey teams, fast-tracking small holdings) to project backlog reduction</p>
+            <p class="text-xs text-amber-300/80 mt-1">Simulate administrative interventions (mobile survey teams, fast-tracking small holdings) to project backlog reduction</p>
           </div>
           <span class="text-[10px] bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
             Predictive Triage
@@ -854,75 +1344,75 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
           <!-- Simulation Inputs -->
-          <div class="space-y-4 bg-slate-800/60 p-4 rounded-xl border border-slate-700/70 text-xs">
+          <div class="space-y-4 bg-stone-800/60 p-4 rounded-xl border border-stone-700/70 text-xs">
             <div>
               <div class="flex justify-between font-semibold mb-1">
-                <span class="text-slate-300">Additional Survey Squads:</span>
-                <span class="text-indigo-400 font-mono font-bold" id="sim-teams-val">+3 Teams</span>
+                <span class="text-stone-300">Additional Survey Squads:</span>
+                <span class="text-amber-400 font-mono font-bold" id="sim-teams-val">+3 Teams</span>
               </div>
-              <input type="range" id="sim-teams-input" min="0" max="10" value="3" oninput="runPolicySimulation()" class="w-full accent-indigo-500 cursor-pointer" />
-              <div class="flex justify-between text-[10px] text-slate-500 mt-0.5">
+              <input type="range" id="sim-teams-input" min="0" max="10" value="3" oninput="runPolicySimulation()" class="w-full accent-amber-500 cursor-pointer" />
+              <div class="flex justify-between text-[10px] text-stone-500 mt-0.5">
                 <span>0 (Current)</span>
                 <span>5 Squads</span>
                 <span>10 Squads</span>
               </div>
             </div>
 
-            <div class="pt-2 border-t border-slate-700/60">
+            <div class="pt-2 border-t border-stone-700/60">
               <label class="flex items-center space-x-2 cursor-pointer">
-                <input type="checkbox" id="sim-fasttrack-input" checked onchange="runPolicySimulation()" class="rounded bg-slate-700 border-slate-600 text-indigo-600 focus:ring-indigo-500" />
-                <span class="text-slate-200 font-medium">Fast-Track Low-Risk Claims (&lt; 2 acres)</span>
+                <input type="checkbox" id="sim-fasttrack-input" checked onchange="runPolicySimulation()" class="rounded bg-stone-700 border-stone-600 text-amber-600 focus:ring-amber-500" />
+                <span class="text-stone-200 font-medium">Fast-Track Low-Risk Claims (&lt; 2 acres)</span>
               </label>
-              <p class="text-[10px] text-slate-400 mt-1 pl-5">Accelerates Gram Sabha resolution clearances for non-disputed traditional plots</p>
+              <p class="text-[10px] text-stone-400 mt-1 pl-5">Accelerates Gram Sabha resolution clearances for non-disputed traditional plots</p>
             </div>
 
-            <div class="pt-2 border-t border-slate-700/60">
+            <div class="pt-2 border-t border-stone-700/60">
               <div class="flex justify-between font-semibold mb-1">
-                <span class="text-slate-300">Target Timeline:</span>
-                <span class="text-indigo-400 font-mono font-bold">90 Days</span>
+                <span class="text-stone-300">Target Timeline:</span>
+                <span class="text-amber-400 font-mono font-bold">90 Days</span>
               </div>
-              <p class="text-[10px] text-slate-400">Quarterly district collector review benchmark</p>
+              <p class="text-[10px] text-stone-400">Quarterly district collector review benchmark</p>
             </div>
           </div>
 
           <!-- Simulation Output KPIs -->
           <div class="grid grid-cols-2 gap-3">
-            <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col justify-between">
-              <span class="text-[10px] uppercase font-bold tracking-wider text-slate-400">Clearance Timeline</span>
+            <div class="bg-stone-800/40 p-4 rounded-xl border border-stone-700/50 flex flex-col justify-between">
+              <span class="text-[10px] uppercase font-bold tracking-wider text-stone-400">Clearance Timeline</span>
               <div>
-                <div class="text-3xl font-black text-white" id="sim-projected-weeks">6 <span class="text-sm font-normal text-indigo-300">wks</span></div>
-                <div class="text-[10px] text-slate-400 mt-0.5">vs <span id="sim-baseline-weeks">24</span> weeks baseline</div>
+                <div class="text-3xl font-black text-white font-mono" id="sim-projected-weeks">6 <span class="text-sm font-normal text-amber-300">wks</span></div>
+                <div class="text-[10px] text-stone-400 mt-0.5">vs <span id="sim-baseline-weeks" class="font-mono">24</span> weeks baseline</div>
               </div>
             </div>
 
-            <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+            <div class="bg-stone-800/40 p-4 rounded-xl border border-stone-700/50 flex flex-col justify-between">
               <span class="text-[10px] uppercase font-bold tracking-wider text-emerald-400">Time Saved</span>
               <div>
-                <div class="text-3xl font-black text-emerald-400" id="sim-days-saved">~126 <span class="text-sm font-normal text-emerald-300">days</span></div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Administrative lead time saved</div>
+                <div class="text-3xl font-black text-emerald-400 font-mono" id="sim-days-saved">~126 <span class="text-sm font-normal text-emerald-300">days</span></div>
+                <div class="text-[10px] text-stone-400 mt-0.5">Administrative lead time saved</div>
               </div>
             </div>
 
-            <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col justify-between">
-              <span class="text-[10px] uppercase font-bold tracking-wider text-indigo-300">Clearance Speed</span>
+            <div class="bg-stone-800/40 p-4 rounded-xl border border-stone-700/50 flex flex-col justify-between">
+              <span class="text-[10px] uppercase font-bold tracking-wider text-amber-300">Clearance Speed</span>
               <div>
-                <div class="text-2xl font-black text-white" id="sim-weekly-rate">64 <span class="text-xs font-normal text-slate-400">claims/wk</span></div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Expanded field verification throughput</div>
+                <div class="text-2xl font-black text-white font-mono" id="sim-weekly-rate">64 <span class="text-xs font-normal text-stone-400">claims/wk</span></div>
+                <div class="text-[10px] text-stone-400 mt-0.5">Expanded field verification throughput</div>
               </div>
             </div>
 
-            <div class="bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 flex flex-col justify-between">
+            <div class="bg-stone-800/40 p-4 rounded-xl border border-stone-700/50 flex flex-col justify-between">
               <span class="text-[10px] uppercase font-bold tracking-wider text-amber-400">Pending Monitored</span>
               <div>
-                <div class="text-2xl font-black text-white" id="sim-pending-claims">327</div>
-                <div class="text-[10px] text-slate-400 mt-0.5">Active unverified claims</div>
+                <div class="text-2xl font-black text-white font-mono" id="sim-pending-claims">327</div>
+                <div class="text-[10px] text-stone-400 mt-0.5">Active unverified claims</div>
               </div>
             </div>
           </div>
 
           <!-- Trajectory Chart -->
-          <div class="bg-slate-800/60 p-4 rounded-xl border border-slate-700/70 flex flex-col justify-between">
-            <span class="text-xs font-bold text-slate-300 mb-2 block">Projected Clearance Trajectory</span>
+          <div class="bg-stone-800/60 p-4 rounded-xl border border-stone-700/70 flex flex-col justify-between">
+            <span class="text-xs font-bold text-stone-300 mb-2 block">Projected Clearance Trajectory</span>
             <div class="h-32">
               <canvas id="simulationChart"></canvas>
             </div>
@@ -931,18 +1421,18 @@
       </div>
 
       <!-- State Detail Drilldown Modal / Panel -->
-      <div id="state-detail-panel" class="bg-white p-6 rounded-xl shadow-sm border border-slate-200 hidden space-y-4">
-        <div class="flex justify-between items-center border-b border-slate-200 pb-3 flex-wrap gap-2">
+      <div id="state-detail-panel" class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 hidden space-y-4">
+        <div class="flex justify-between items-center border-b border-stone-200 dark:border-stone-800 pb-3 flex-wrap gap-2">
           <div>
-            <h2 class="text-xl font-bold text-slate-900" id="drilldown-state-name">Madhya Pradesh</h2>
-            <p class="text-xs text-slate-500">District-level breakdown and AI administrative summary</p>
+            <h2 class="text-xl font-bold text-stone-900 dark:text-stone-100" id="drilldown-state-name">Madhya Pradesh</h2>
+            <p class="text-xs text-stone-500 dark:text-stone-400">District-level breakdown and AI administrative summary</p>
           </div>
           <div class="flex items-center space-x-2">
-            <button onclick="openDistrictDossierModal()" class="bg-slate-100 hover:bg-slate-200 text-slate-700 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
+            <button onclick="openDistrictDossierModal()" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-700 dark:text-stone-200 px-3 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 transition">
               <i data-lucide="printer" class="w-3.5 h-3.5"></i>
               <span>Print State Briefing</span>
             </button>
-            <button onclick="generateStateAISummary()" id="btn-state-ai" class="bg-indigo-600 hover:bg-indigo-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-sm transition">
+            <button onclick="generateStateAISummary()" id="btn-state-ai" class="bg-amber-600 hover:bg-amber-500 text-white px-3.5 py-1.5 rounded-lg text-xs font-bold flex items-center space-x-1.5 shadow-2xs transition">
               <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
               <span>Generate AI State Summary</span>
             </button>
@@ -950,23 +1440,23 @@
         </div>
 
         <!-- State Official MoTA Reference Benchmark Box -->
-        <div id="state-benchmark-box" class="bg-gradient-to-r from-slate-50 to-indigo-50/40 p-4 rounded-xl border border-slate-200 text-xs space-y-3">
+        <div id="state-benchmark-box" class="bg-stone-50 dark:bg-[#161f30] p-4 rounded-xl border border-stone-200 dark:border-stone-800 text-xs space-y-3">
           <!-- Populated dynamically in drillIntoState() -->
         </div>
 
         <!-- AI State Summary Box -->
-        <div id="state-ai-summary-box" class="bg-slate-900 text-white p-4 rounded-lg text-xs leading-relaxed hidden">
-          <div class="flex items-center space-x-2 text-indigo-400 font-bold mb-2">
+        <div id="state-ai-summary-box" class="bg-stone-900 dark:bg-[#0B101E] text-white p-4 rounded-lg text-xs leading-relaxed hidden">
+          <div class="flex items-center space-x-2 text-amber-400 font-bold mb-2">
             <i data-lucide="sparkles" class="w-4 h-4"></i>
             <span>Administrative Summary</span>
           </div>
-          <p class="text-slate-200" id="state-ai-summary-content"></p>
+          <p class="text-stone-200" id="state-ai-summary-content"></p>
         </div>
 
         <!-- District Breakdown Table -->
         <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200 text-xs">
-            <thead class="bg-slate-50 text-slate-500 uppercase font-semibold">
+          <table class="min-w-full divide-y divide-stone-200 dark:divide-stone-800 text-xs">
+            <thead class="bg-stone-50 dark:bg-stone-800/70 text-stone-500 dark:text-stone-400 uppercase font-semibold">
               <tr>
                 <th class="px-4 py-2.5 text-left">District</th>
                 <th class="px-4 py-2.5 text-right">Total Claims</th>
@@ -977,7 +1467,7 @@
                 <th class="px-4 py-2.5 text-center">Action</th>
               </tr>
             </thead>
-            <tbody id="drilldown-districts-table" class="divide-y divide-slate-100 font-medium text-slate-700">
+            <tbody id="drilldown-districts-table" class="divide-y divide-stone-100 dark:divide-stone-800 font-medium text-stone-700 dark:text-stone-300">
               <!-- Rendered dynamically -->
             </tbody>
           </table>
@@ -987,40 +1477,44 @@
 
   </main>
 
+  <!-- ================================================================= -->
+  <!-- MODALS                                                            -->
+  <!-- ================================================================= -->
+
   <!-- MODAL 1: OFFICIAL NOTICE MEMORANDUM (PRINT/DOWNLOAD READY) -->
-  <div id="modal-official-memo" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 flex flex-col justify-between">
+  <div id="modal-official-memo" class="fixed inset-0 z-50 bg-stone-900/70 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto border border-stone-200 dark:border-stone-800 flex flex-col justify-between">
       <div class="p-6" id="printable-memo-container">
         <!-- Ashok Stambh / National Emblem Header Representation -->
-        <div class="text-center border-b-2 border-slate-900 pb-4 mb-4">
-          <div class="inline-block mb-1 text-slate-800">
+        <div class="text-center border-b-2 border-stone-900 dark:border-stone-300 pb-4 mb-4">
+          <div class="inline-block mb-1 text-stone-800 dark:text-stone-200">
             <svg class="w-10 h-10 mx-auto" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path>
             </svg>
           </div>
-          <h2 class="text-base font-extrabold uppercase tracking-widest text-slate-900">Government of India / State Tribal Welfare Department</h2>
-          <h3 class="text-xs font-bold uppercase tracking-wider text-slate-600">Office of the Sub-Divisional Level Committee (SDLC)</h3>
-          <p class="text-[10px] text-slate-500 mt-0.5">Under the Scheduled Tribes and Other Traditional Forest Dwellers (Recognition of Forest Rights) Act, 2006</p>
+          <h2 class="text-base font-extrabold uppercase tracking-widest text-stone-900 dark:text-white">Government of India / State Tribal Welfare Department</h2>
+          <h3 class="text-xs font-bold uppercase tracking-wider text-stone-600 dark:text-stone-400">Office of the Sub-Divisional Level Committee (SDLC)</h3>
+          <p class="text-[10px] text-stone-500 mt-0.5">Under the Scheduled Tribes and Other Traditional Forest Dwellers (Recognition of Forest Rights) Act, 2006</p>
         </div>
 
         <!-- Official Ref & Date -->
-        <div class="flex justify-between items-center text-xs font-mono mb-4 text-slate-700">
+        <div class="flex justify-between items-center text-xs font-mono mb-4 text-stone-700 dark:text-stone-300">
           <div><strong>Dispatch Memo No:</strong> <span id="memo-ref-no">SDLC/2026/NOT-0001</span></div>
-          <div><strong>Dated:</strong> <span id="memo-date">04/09/2026</span></div>
+          <div><strong>Dated:</strong> <span id="memo-date">05/09/2026</span></div>
         </div>
 
         <!-- Memorandum Subject & Body -->
-        <div class="space-y-3 text-xs leading-relaxed text-slate-800">
-          <div class="bg-slate-50 p-2.5 rounded border border-slate-200">
-            <strong>SUBJECT:</strong> <span id="memo-subject" class="font-semibold text-slate-900">ORDER FOR JOINT FIELD VERIFICATION OF FRA CLAIM</span>
+        <div class="space-y-3 text-xs leading-relaxed text-stone-800 dark:text-stone-200">
+          <div class="bg-stone-50 dark:bg-stone-800/80 p-2.5 rounded border border-stone-200 dark:border-stone-700">
+            <strong>SUBJECT:</strong> <span id="memo-subject" class="font-semibold text-stone-900 dark:text-white">ORDER FOR JOINT FIELD VERIFICATION OF FRA CLAIM</span>
           </div>
 
           <p>
-            Whereas claim application bearing unique registration ID <strong id="memo-claim-id" class="font-mono">DEMO-003</strong> submitted by claimant <strong id="memo-claimant-name">Bhuri Bai Korku</strong> for recognition of forest rights over an area of <strong id="memo-area">8.5 acres</strong> in District <strong id="memo-district">Seoni</strong> has been subjected to automated multi-tier spatial and administrative screening.
+            Whereas claim application bearing unique registration ID <strong id="memo-claim-id" class="font-mono text-amber-600 dark:text-amber-400">DEMO-003</strong> submitted by claimant <strong id="memo-claimant-name">Bhuri Bai Korku</strong> for recognition of forest rights over an area of <strong id="memo-area">8.5 acres</strong> in District <strong id="memo-district">Seoni</strong> has been subjected to automated multi-tier spatial and administrative screening.
           </p>
 
-          <div class="p-3 bg-amber-50/70 border border-amber-200 rounded text-[11px] text-slate-800">
-            <div class="font-bold text-amber-900 mb-1">RECORD OF ANOMALOUS FINDINGS REQUIRING INQUIRY:</div>
+          <div class="p-3 bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200 dark:border-amber-900/50 rounded text-[11px] text-stone-800 dark:text-stone-200">
+            <div class="font-bold text-amber-900 dark:text-amber-300 mb-1">RECORD OF ANOMALOUS FINDINGS REQUIRING INQUIRY:</div>
             <ul id="memo-reasons-list" class="list-disc pl-4 space-y-0.5">
               <!-- Dynamically populated -->
             </ul>
@@ -1030,34 +1524,34 @@
             In exercise of powers vested under Section 6 of the Forest Rights Act, 2006, read with Rule 12 of the Forest Rights Rules:
           </p>
 
-          <div class="p-3 bg-indigo-50/70 border border-indigo-200 rounded font-medium text-slate-800" id="memo-order-text">
+          <div class="p-3 bg-amber-50/70 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-900/50 rounded font-medium text-stone-800 dark:text-stone-200" id="memo-order-text">
             <!-- Order action details -->
           </div>
 
           <!-- Officer Remarks -->
-          <div class="text-[11px] text-slate-600">
+          <div class="text-[11px] text-stone-600 dark:text-stone-400">
             <strong>Officer Directive:</strong> <span id="memo-remarks-text">Ensure boundary coordinates are demarcated via differential GPS.</span>
           </div>
 
           <!-- Signatures block -->
-          <div class="pt-6 mt-4 border-t border-slate-200 flex justify-between items-end">
-            <div class="text-[10px] text-slate-400 font-mono">
+          <div class="pt-6 mt-4 border-t border-stone-200 dark:border-stone-800 flex justify-between items-end">
+            <div class="text-[10px] text-stone-400 font-mono">
               <div>System Hash: <span id="memo-hash">4f8a92...</span></div>
               <div>Digitally signed through VanRaksha AI Portal</div>
             </div>
             <div class="text-right">
-              <div class="text-xs font-bold text-slate-900" id="memo-officer-signature">Dr. Alok Ranjan, IAS</div>
-              <div class="text-[11px] text-slate-600" id="memo-officer-title">Sub-Divisional Magistrate & Chair, SDLC</div>
-              <div class="text-[10px] text-slate-400 uppercase tracking-widest mt-1">Official Seal (Digitally Validated)</div>
+              <div class="text-xs font-bold text-stone-900 dark:text-white" id="memo-officer-signature">Dr. Alok Ranjan, IAS</div>
+              <div class="text-[11px] text-stone-600 dark:text-stone-400" id="memo-officer-title">Sub-Divisional Magistrate & Chair, SDLC</div>
+              <div class="text-[10px] text-stone-400 uppercase tracking-widest mt-1">Official Seal (Digitally Validated)</div>
             </div>
           </div>
         </div>
       </div>
 
       <!-- Action Buttons -->
-      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-2">
-        <button onclick="closeModal('modal-official-memo')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Close</button>
-        <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1.5">
+      <div class="p-4 bg-stone-50 dark:bg-stone-900/50 border-t border-stone-200 dark:border-stone-800 flex justify-end space-x-2">
+        <button onclick="closeModal('modal-official-memo')" class="px-4 py-2 rounded-lg text-xs font-semibold text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition">Close</button>
+        <button onclick="window.print()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-2xs transition flex items-center space-x-1.5">
           <i data-lucide="printer" class="w-3.5 h-3.5"></i>
           <span>Print / Save PDF</span>
         </button>
@@ -1066,62 +1560,62 @@
   </div>
 
   <!-- MODAL 2: DISTRICT COLLECTOR EXECUTIVE DOSSIER (PRINT/DOWNLOAD) -->
-  <div id="modal-district-dossier" class="fixed inset-0 z-50 bg-slate-900/70 backdrop-blur-xs flex items-center justify-center p-4 hidden">
-    <div class="bg-white rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-slate-200 flex flex-col justify-between">
+  <div id="modal-district-dossier" class="fixed inset-0 z-50 bg-stone-900/70 dark:bg-black/80 backdrop-blur-xs flex items-center justify-center p-4 hidden">
+    <div class="bg-white dark:bg-[#111827] rounded-2xl shadow-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto border border-stone-200 dark:border-stone-800 flex flex-col justify-between">
       <div class="p-6" id="printable-dossier-container">
         <!-- Header -->
-        <div class="border-b border-slate-200 pb-3 mb-4">
+        <div class="border-b border-stone-200 dark:border-stone-800 pb-3 mb-4">
           <div class="flex justify-between items-center">
             <div class="flex items-center space-x-2">
-              <span class="bg-indigo-600 text-white font-bold text-xs px-2 py-0.5 rounded">CONFIDENTIAL</span>
-              <span class="text-xs text-slate-500">Weekly Administrative Audit Dossier</span>
+              <span class="bg-amber-600 text-white font-bold text-xs px-2 py-0.5 rounded">CONFIDENTIAL</span>
+              <span class="text-xs text-stone-500 dark:text-stone-400">Weekly Administrative Audit Dossier</span>
             </div>
-            <span class="text-xs font-mono text-slate-400">VANRAKSHA-SEC/2026</span>
+            <span class="text-xs font-mono text-stone-400">VANRAKSHA-SEC/2026</span>
           </div>
-          <h2 class="text-xl font-extrabold text-slate-900 mt-2">Forest Rights Act (FRA) District Collector Audit Briefing</h2>
-          <p class="text-xs text-slate-600">Bottlenecks, Anomaly Densities & Immediate Action Plan</p>
+          <h2 class="text-xl font-extrabold text-stone-900 dark:text-white mt-2">Forest Rights Act (FRA) District Collector Audit Briefing</h2>
+          <p class="text-xs text-stone-600 dark:text-stone-400">Bottlenecks, Anomaly Densities & Immediate Action Plan</p>
         </div>
 
         <!-- Dossier Summary Grid -->
         <div class="grid grid-cols-4 gap-3 text-center text-xs mb-4">
-          <div class="bg-slate-50 p-2.5 rounded-lg border border-slate-200">
-            <span class="text-slate-500 block text-[10px] uppercase font-bold">Total Monitored</span>
-            <strong class="text-slate-900 text-lg font-black" id="dossier-total">750</strong>
+          <div class="bg-stone-50 dark:bg-stone-800/80 p-2.5 rounded-lg border border-stone-200 dark:border-stone-700">
+            <span class="text-stone-500 dark:text-stone-400 block text-[10px] uppercase font-bold">Total Monitored</span>
+            <strong class="text-stone-900 dark:text-white text-lg font-black font-mono" id="dossier-total">750</strong>
           </div>
-          <div class="bg-emerald-50 p-2.5 rounded-lg border border-emerald-200">
-            <span class="text-emerald-700 block text-[10px] uppercase font-bold">Approved</span>
-            <strong class="text-emerald-800 text-lg font-black" id="dossier-approved">351</strong>
+          <div class="bg-emerald-50 dark:bg-emerald-950/40 p-2.5 rounded-lg border border-emerald-200 dark:border-emerald-800">
+            <span class="text-emerald-700 dark:text-emerald-300 block text-[10px] uppercase font-bold">Approved</span>
+            <strong class="text-emerald-800 dark:text-emerald-300 text-lg font-black font-mono" id="dossier-approved">351</strong>
           </div>
-          <div class="bg-amber-50 p-2.5 rounded-lg border border-amber-200">
-            <span class="text-amber-700 block text-[10px] uppercase font-bold">Pending</span>
-            <strong class="text-amber-800 text-lg font-black" id="dossier-pending">287</strong>
+          <div class="bg-amber-50 dark:bg-amber-950/40 p-2.5 rounded-lg border border-amber-200 dark:border-amber-800">
+            <span class="text-amber-700 dark:text-amber-300 block text-[10px] uppercase font-bold">Pending</span>
+            <strong class="text-amber-800 dark:text-amber-300 text-lg font-black font-mono" id="dossier-pending">287</strong>
           </div>
-          <div class="bg-red-50 p-2.5 rounded-lg border border-red-200">
-            <span class="text-red-700 block text-[10px] uppercase font-bold">Critical Priority</span>
-            <strong class="text-red-800 text-lg font-black" id="dossier-critical">37</strong>
+          <div class="bg-red-50 dark:bg-red-950/40 p-2.5 rounded-lg border border-red-200 dark:border-red-800">
+            <span class="text-red-700 dark:text-red-300 block text-[10px] uppercase font-bold">Critical Priority</span>
+            <strong class="text-red-800 dark:text-red-300 text-lg font-black font-mono" id="dossier-critical">37</strong>
           </div>
         </div>
 
         <!-- Top Bottleneck Claims -->
         <div class="space-y-2 text-xs mb-4">
-          <h3 class="font-bold text-slate-900 uppercase text-[11px] tracking-wider">Top Priority Anomalous Claims Requiring District Collector Intervention</h3>
+          <h3 class="font-bold text-stone-900 dark:text-stone-100 uppercase text-[11px] tracking-wider">Top Priority Anomalous Claims Requiring District Collector Intervention</h3>
           <div id="dossier-claims-list" class="space-y-1.5">
             <!-- Dynamically populated -->
           </div>
         </div>
 
         <!-- Standard Operating Checklist -->
-        <div class="bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs text-slate-700 space-y-1.5">
-          <div class="font-bold text-slate-900">Recommended Next 7-Day Administrative Steps:</div>
+        <div class="bg-stone-50 dark:bg-stone-800/80 p-3 rounded-lg border border-stone-200 dark:border-stone-700 text-xs text-stone-700 dark:text-stone-300 space-y-1.5">
+          <div class="font-bold text-stone-900 dark:text-white">Recommended Next 7-Day Administrative Steps:</div>
           <div>1. Mandate joint physical inspection by Sub-Divisional Officer (SDO) for all claims exceeding 180 days pending.</div>
           <div>2. Issue cadastral reconciliation orders with District Revenue Inspector for claims flagged with area variance &gt; 20%.</div>
           <div>3. Conduct special Gram Sabha reconciliation beats in High-Density anomaly villages.</div>
         </div>
       </div>
 
-      <div class="p-4 bg-slate-50 border-t border-slate-200 flex justify-end space-x-2">
-        <button onclick="closeModal('modal-district-dossier')" class="px-4 py-2 rounded-lg text-xs font-semibold text-slate-600 hover:bg-slate-200 transition">Close</button>
-        <button onclick="window.print()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-sm transition flex items-center space-x-1.5">
+      <div class="p-4 bg-stone-50 dark:bg-stone-900/50 border-t border-stone-200 dark:border-stone-800 flex justify-end space-x-2">
+        <button onclick="closeModal('modal-district-dossier')" class="px-4 py-2 rounded-lg text-xs font-semibold text-stone-600 dark:text-stone-300 hover:bg-stone-200 dark:hover:bg-stone-800 transition">Close</button>
+        <button onclick="window.print()" class="px-4 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-bold shadow-2xs transition flex items-center space-x-1.5">
           <i data-lucide="printer" class="w-3.5 h-3.5"></i>
           <span>Print Audit Dossier</span>
         </button>
@@ -1130,21 +1624,21 @@
   </div>
 
   <!-- FOOTER -->
-  <footer class="bg-white border-t border-slate-200 mt-auto py-4">
-    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2">
-      <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-slate-500 gap-2">
+  <footer class="bg-white dark:bg-stone-950 border-t border-stone-200 dark:border-stone-800 mt-auto py-5 transition-colors">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 space-y-2.5">
+      <div class="flex flex-col sm:flex-row items-center justify-between text-xs text-stone-500 dark:text-stone-400 gap-2">
         <div class="flex items-center space-x-2">
-          <span class="font-bold text-slate-700">VanRaksha AI (वनरक्षा AI)</span>
+          <span class="font-bold text-stone-700 dark:text-stone-200">VanRaksha AI (वनरक्षा AI)</span>
           <span>•</span>
           <span>Forest Rights Act Decision Support & WebGIS Platform</span>
         </div>
-        <div class="text-[11px] text-slate-400">
-          Explainable Deterministic Anomaly Engine • Google Gemini AI • Zero External Runtime Dependencies
+        <div class="text-[11px] text-stone-400 dark:text-stone-500 font-mono">
+          Deterministic Anomaly Engine • Google Gemini AI • MoTA National Baseline
         </div>
       </div>
-      <div class="text-[11px] text-slate-500 border-t border-slate-100 pt-2 flex flex-col sm:flex-row items-center justify-between gap-1">
-        <span><strong>Disclosure & Data Provenance:</strong> Claim-level records shown in this hackathon demo are synthetic demonstration data for evaluation. Official FRA aggregate statistics are sourced from the Ministry of Tribal Affairs (MoTA) and data.gov.in as reference benchmarks.</span>
-        <span class="text-[10px] text-slate-400 shrink-0">MoTA Status Report March 2026</span>
+      <div class="text-[11px] text-stone-500 dark:text-stone-400 border-t border-stone-100 dark:border-stone-800/80 pt-2 flex flex-col sm:flex-row items-center justify-between gap-1">
+        <span><strong>Disclosure & Data Provenance:</strong> Claim-level records shown in this hackathon demo are synthetic demonstration data for spatial anomaly evaluation. Official FRA aggregate statistics are sourced from the Ministry of Tribal Affairs (MoTA) and data.gov.in as reference benchmarks.</span>
+        <span class="text-[10px] text-stone-400 dark:text-stone-500 shrink-0 font-mono">MoTA MPR March 2026</span>
       </div>
     </div>
   </footer>

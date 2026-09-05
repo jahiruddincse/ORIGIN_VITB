@@ -38,7 +38,7 @@ for ep in [BASE_DIR / ".env.local", BASE_DIR.parent / ".env.local", BASE_DIR / "
                     line = line.strip()
                     if line and not line.startswith("#") and "=" in line:
                         k, v = line.split("=", 1)
-                        os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+                        os.environ[k.strip()] = v.strip().strip('"').strip("'")
         except Exception:
             pass
 

@@ -17,47 +17,101 @@ class GeminiProvider:
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
                 self.model = genai.GenerativeModel('gemini-2.5-flash')
-            except Exception as e:
-                print(f"Failed to initialize Gemini: {e}")
-                self.is_configured = False
+            except Exception:
+                # Direct REST fallback will be used
+                self.model = None
 
     def analyze_claim(self, claim_data: dict) -> dict:
         if not self.is_configured:
             return self._fallback_analyze_claim(claim_data)
 
+        # 1. Try google-generativeai package if available
+        if self.model:
+            try:
+                prompt = CLAIM_ANALYSIS_PROMPT.format(claim_data=json.dumps(claim_data, indent=2, default=str))
+                response = self.model.generate_content(
+                    prompt,
+                    generation_config={"response_mime_type": "application/json"}
+                )
+                result = json.loads(response.text)
+                return {
+                    "summary": result.get("summary", ""),
+                    "why_flagged": result.get("why_flagged", []),
+                    "severity_assessment": result.get("severity_assessment", ""),
+                    "recommended_action": result.get("recommended_action", ""),
+                    "evidence": result.get("evidence", {}),
+                    "disclaimer": result.get("disclaimer", "This is an AI-generated assessment for decision support only.")
+                }
+            except Exception as e:
+                print(f"genai package analysis failed: {e}")
+
+        # 2. Try direct REST API with standard library urllib
         try:
-            import google.generativeai as genai
+            import urllib.request
+            import ssl
+            ssl_ctx = ssl._create_unverified_context()
             prompt = CLAIM_ANALYSIS_PROMPT.format(claim_data=json.dumps(claim_data, indent=2, default=str))
-            response = self.model.generate_content(
-                prompt,
-                generation_config={"response_mime_type": "application/json"}
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
+            req = urllib.request.Request(
+                url,
+                data=json.dumps({
+                    "contents": [{"parts": [{"text": prompt}]}],
+                    "generationConfig": {"response_mime_type": "application/json"}
+                }).encode('utf-8'),
+                headers={"Content-Type": "application/json"}
             )
-            result = json.loads(response.text)
-            # Ensure all expected fields exist
-            return {
-                "summary": result.get("summary", ""),
-                "why_flagged": result.get("why_flagged", []),
-                "severity_assessment": result.get("severity_assessment", ""),
-                "recommended_action": result.get("recommended_action", ""),
-                "evidence": result.get("evidence", {}),
-                "disclaimer": result.get("disclaimer", "This is an AI-generated assessment for decision support only.")
-            }
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=20) as resp:
+                res_json = json.loads(resp.read().decode('utf-8'))
+                raw_text = res_json['candidates'][0]['content']['parts'][0]['text'].strip()
+                if raw_text.startswith("```json"): raw_text = raw_text[7:]
+                if raw_text.startswith("```"): raw_text = raw_text[3:]
+                if raw_text.endswith("```"): raw_text = raw_text[:-3]
+                result = json.loads(raw_text.strip())
+                return {
+                    "summary": result.get("summary", ""),
+                    "why_flagged": result.get("why_flagged", []),
+                    "severity_assessment": result.get("severity_assessment", ""),
+                    "recommended_action": result.get("recommended_action", ""),
+                    "evidence": result.get("evidence", {}),
+                    "disclaimer": result.get("disclaimer", "This is an AI-generated assessment for decision support only.")
+                }
         except Exception as e:
-            print(f"AI analysis failed: {e}")
-            traceback.print_exc()
-            return self._fallback_analyze_claim(claim_data)
+            print(f"Gemini REST analysis failed: {e}")
+
+        return self._fallback_analyze_claim(claim_data)
 
     def generate_state_summary(self, state_data: dict) -> str:
         if not self.is_configured:
             return self._fallback_state_summary(state_data)
 
+        if self.model:
+            try:
+                prompt = STATE_SUMMARY_PROMPT.format(state_data=json.dumps(state_data, indent=2, default=str))
+                response = self.model.generate_content(prompt)
+                return response.text
+            except Exception as e:
+                print(f"AI state summary via genai failed: {e}")
+
         try:
+            import urllib.request
+            import ssl
+            ssl_ctx = ssl._create_unverified_context()
             prompt = STATE_SUMMARY_PROMPT.format(state_data=json.dumps(state_data, indent=2, default=str))
-            response = self.model.generate_content(prompt)
-            return response.text
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key={self.api_key}"
+            req = urllib.request.Request(
+                url,
+                data=json.dumps({
+                    "contents": [{"parts": [{"text": prompt}]}]
+                }).encode('utf-8'),
+                headers={"Content-Type": "application/json"}
+            )
+            with urllib.request.urlopen(req, context=ssl_ctx, timeout=20) as resp:
+                res_json = json.loads(resp.read().decode('utf-8'))
+                return res_json['candidates'][0]['content']['parts'][0]['text'].strip()
         except Exception as e:
-            print(f"AI state summary failed: {e}")
-            return self._fallback_state_summary(state_data)
+            print(f"Gemini REST state summary failed: {e}")
+
+        return self._fallback_state_summary(state_data)
 
     def _fallback_analyze_claim(self, claim_data: dict) -> dict:
         """Deterministic fallback when AI is unavailable."""
