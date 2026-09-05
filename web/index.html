@@ -981,40 +981,33 @@
           </div>
 
           <!-- PROTECTED FOREST & ECO-SENSITIVE ZONE GEO-FENCING -->
-          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 space-y-3">
+          <div class="bg-white dark:bg-stone-900/80 p-4 rounded-2xl shadow-sm border border-stone-200/90 dark:border-stone-800">
+            <div id="protected-zone-box">
+              <!-- Dynamically populated as a sleek horizontal distance radar strip -->
+            </div>
+          </div>
+
+          <!-- FLAGGED DETECTION SIGNALS (METRIC CHIPS) -->
+          <div class="bg-white dark:bg-stone-900/80 p-5 rounded-2xl shadow-sm border border-stone-200/90 dark:border-stone-800 space-y-3">
             <div class="flex items-center justify-between">
-              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-2">
-                <i data-lucide="trees" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
-                <span>Protected Forest & Habitat Geo-Fencing</span>
+              <h3 class="font-bold text-stone-900 dark:text-stone-100 text-xs uppercase tracking-wider font-mono flex items-center space-x-2">
+                <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
+                <span>Statutory Detection Signals</span>
               </h3>
-              <span class="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 text-[10px] font-bold px-2 py-0.5 rounded border border-emerald-200 dark:border-emerald-800">
-                FRA Sec 4(2) Safe Buffer
-              </span>
+              <span class="text-[10px] font-mono text-stone-400 font-bold">Rule Engine</span>
             </div>
-            <div id="protected-zone-box" class="p-3 rounded-lg border border-stone-200 dark:border-stone-800 text-xs">
-              <!-- Dynamically populated -->
+            <div id="detail-flagged-list">
+              <!-- Rendered dynamically as high-impact metric chips -->
             </div>
           </div>
 
-          <!-- FLAGGED DETECTION SIGNALS -->
-          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
-            <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm mb-3 flex items-center space-x-2">
-              <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-500"></i>
-              <span>Flagged Detection Signals</span>
-            </h3>
-            <div id="detail-flagged-list" class="space-y-2.5">
-              <!-- Rendered dynamically -->
-            </div>
-          </div>
-
-          <!-- EXPLAINABLE QUANTITATIVE EVIDENCE -->
-          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800">
-            <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm mb-2 flex items-center space-x-2">
+          <!-- EXPLAINABLE QUANTITATIVE EVIDENCE (HIDDEN IF REDUNDANT) -->
+          <div id="card-quantitative-evidence" class="hidden bg-white dark:bg-stone-900/80 p-5 rounded-2xl shadow-sm border border-stone-200/90 dark:border-stone-800 space-y-3">
+            <h3 class="font-bold text-stone-900 dark:text-stone-100 text-xs uppercase tracking-wider font-mono flex items-center space-x-2">
               <i data-lucide="scale" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-              <span>Quantitative Baseline Comparisons</span>
+              <span>Baseline Comparisons</span>
             </h3>
-            <p class="text-[11px] text-stone-500 dark:text-stone-400 mb-3">Auditable metrics comparing claim values to statutory and district benchmarks</p>
-            <div id="detail-anomaly-evidence" class="space-y-3">
+            <div id="detail-anomaly-evidence" class="space-y-2">
               <!-- Rendered dynamically from /api/anomalies/{id} -->
             </div>
           </div>
@@ -1135,25 +1128,46 @@
           </div>
 
           <!-- OFFICER ADMINISTRATIVE ACTION CONSOLE & DISPOSITION WORKFLOW -->
-          <div class="bg-white dark:bg-stone-900/80 p-6 rounded-xl shadow-2xs border border-stone-200 dark:border-stone-800 space-y-4">
-            <div class="flex items-center justify-between border-b border-stone-200 dark:border-stone-800 pb-3">
-              <div>
-                <h3 class="font-bold text-stone-900 dark:text-stone-100 text-sm flex items-center space-x-2">
-                  <i data-lucide="stamp" class="w-4 h-4 text-amber-600 dark:text-amber-400"></i>
-                  <span>Officer Administrative Action Console</span>
-                </h3>
-                <p class="text-xs text-stone-500 dark:text-stone-400">Record official statutory next steps and generate legal notices</p>
+          <div class="bg-white dark:bg-stone-900/80 p-5 rounded-2xl shadow-sm border border-stone-200/90 dark:border-stone-800 space-y-3.5">
+            <div class="flex items-center justify-between border-b border-stone-100 dark:border-stone-800/80 pb-3">
+              <div class="flex items-center space-x-2">
+                <div class="w-7 h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                  <i data-lucide="stamp" class="w-4 h-4"></i>
+                </div>
+                <div>
+                  <h3 class="font-bold text-stone-900 dark:text-stone-100 text-xs uppercase tracking-wider font-mono">Officer Action Console</h3>
+                </div>
               </div>
-              <span class="text-[10px] bg-amber-50 dark:bg-amber-950/60 text-amber-700 dark:text-amber-300 font-bold px-2 py-0.5 rounded border border-amber-200 dark:border-amber-800">
-                SDLC / DLC Active
-              </span>
+              <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-stone-100 dark:bg-stone-800 text-[10px] text-stone-600 dark:text-stone-300 font-semibold">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Dr. Alok Ranjan, IAS (SDM)</span>
+              </div>
             </div>
 
             <form id="officer-action-form" onsubmit="submitOfficerAction(event)" class="space-y-3 text-xs">
+              <!-- Hidden inputs to preserve existing API / JS bindings -->
+              <input type="hidden" id="action-officer-name" value="Dr. Alok Ranjan, IAS" />
+              <input type="hidden" id="action-officer-desig" value="SDM & SDLC Committee Chair" />
+
               <div>
-                <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Administrative Action / Directive</label>
-                <select id="action-type-select" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 font-medium text-stone-800 dark:text-stone-200 focus:ring-2 focus:ring-amber-500">
-                  <option value="JOINT_SURVEY_ORDERED">Order Joint Field Cadastral Survey (SDLC + Forest + Revenue)</option>
+                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-stone-400 block mb-1.5">Action Directive</span>
+                <div class="grid grid-cols-3 gap-2">
+                  <button type="button" onclick="selectQuickAction('JOINT_SURVEY_ORDERED', this)" class="action-chip active-chip py-2 px-2 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-300 font-bold text-center transition flex flex-col items-center gap-1 cursor-pointer">
+                    <i data-lucide="search" class="w-3.5 h-3.5 text-amber-600"></i>
+                    <span class="text-[11px]">Joint Survey</span>
+                  </button>
+                  <button type="button" onclick="selectQuickAction('GRAM_SABHA_NOTICE', this)" class="action-chip py-2 px-2 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-amber-400 text-stone-700 dark:text-stone-300 font-semibold text-center transition flex flex-col items-center gap-1 cursor-pointer">
+                    <i data-lucide="mail" class="w-3.5 h-3.5 text-stone-500"></i>
+                    <span class="text-[11px]">Form-C Notice</span>
+                  </button>
+                  <button type="button" onclick="selectQuickAction('DLC_RECOMMENDED', this)" class="action-chip py-2 px-2 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-amber-400 text-stone-700 dark:text-stone-300 font-semibold text-center transition flex flex-col items-center gap-1 cursor-pointer">
+                    <i data-lucide="award" class="w-3.5 h-3.5 text-stone-500"></i>
+                    <span class="text-[11px]">Sanction Title</span>
+                  </button>
+                </div>
+
+                <select id="action-type-select" class="hidden">
+                  <option value="JOINT_SURVEY_ORDERED" selected>Order Joint Field Cadastral Survey (SDLC + Forest + Revenue)</option>
                   <option value="GRAM_SABHA_NOTICE">Issue Formal Clarification Notice to Gram Sabha (Form-C Inquiry)</option>
                   <option value="DLC_RECOMMENDED">Recommend for DLC Approval (Title Sanction with Caveat)</option>
                   <option value="CADASTRAL_HALT">Halt Processing — Cadastral Re-Demarcation Required</option>
@@ -1161,30 +1175,18 @@
                 </select>
               </div>
 
-              <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Officer Name</label>
-                  <input type="text" id="action-officer-name" value="Dr. Alok Ranjan, IAS" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 text-stone-800 dark:text-stone-200" required />
-                </div>
-                <div>
-                  <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Designation & Committee</label>
-                  <input type="text" id="action-officer-desig" value="SDM & SDLC Committee Chair" class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 text-stone-800 dark:text-stone-200" required />
-                </div>
-              </div>
-
               <div>
-                <label class="block font-semibold text-stone-700 dark:text-stone-300 mb-1">Official Notes / Inquiry Instructions</label>
-                <textarea id="action-remarks" rows="2" placeholder="Specify instructions for beat guard, survey chainman, or Gram Sabha..." class="w-full bg-stone-50 dark:bg-stone-800 border border-stone-300 dark:border-stone-700 rounded-lg p-2 text-stone-800 dark:text-stone-200"></textarea>
+                <input type="text" id="action-remarks" placeholder="Optional directive note for survey squad..." class="w-full bg-stone-50 dark:bg-stone-800/80 border border-stone-200 dark:border-stone-700 rounded-xl px-3 py-2 text-xs text-stone-900 dark:text-stone-100 placeholder-stone-400 focus:outline-none focus:ring-1 focus:ring-amber-500" />
               </div>
 
-              <div class="flex items-center justify-between pt-2 gap-2">
-                <button type="submit" id="btn-submit-action" class="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4 py-2 rounded-lg shadow-2xs transition flex items-center space-x-1.5">
+              <div class="grid grid-cols-2 gap-2 pt-1">
+                <button type="submit" id="btn-submit-action" class="w-full bg-stone-900 hover:bg-stone-800 dark:bg-stone-100 dark:hover:bg-white text-white dark:text-stone-900 font-bold py-2 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shadow-2xs cursor-pointer">
                   <i data-lucide="check" class="w-3.5 h-3.5"></i>
-                  <span>Record Administrative Disposition</span>
+                  <span>Record Order</span>
                 </button>
-                <button type="button" onclick="openOfficialNoticeMemo()" class="bg-stone-100 dark:bg-stone-800 hover:bg-stone-200 dark:hover:bg-stone-700 text-stone-800 dark:text-stone-200 font-bold px-3 py-2 rounded-lg border border-stone-300 dark:border-stone-700 transition flex items-center space-x-1.5">
-                  <i data-lucide="file-text" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
-                  <span>View Official Notice Memo</span>
+                <button type="button" onclick="openOfficialNoticeMemo()" class="w-full bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-3 rounded-xl shadow-2xs transition flex items-center justify-center gap-1.5 cursor-pointer">
+                  <i data-lucide="file-text" class="w-3.5 h-3.5"></i>
+                  <span>Official Memo 📄</span>
                 </button>
               </div>
             </form>

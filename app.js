@@ -1093,34 +1093,40 @@ async function viewClaim(claimId) {
     ? currentClaim.anomaly_types 
     : JSON.parse(currentClaim.anomaly_types || '[]');
 
-  const anomalyDescriptions = {
-    'DELAYED_CLAIM': `Processing pending for ${currentClaim.days_pending} days beyond statutory 180-day threshold`,
-    'LAND_RECORD_MISMATCH': `Cadastral record status indicates mismatch with claimed ${currentClaim.area_acres} acres`,
-    'INCOMPLETE_DOCUMENTATION': 'Required supporting Gram Sabha resolution or caste documentation incomplete',
-    'UNUSUAL_AREA': `Claim area of ${currentClaim.area_acres} acres significantly higher than typical 2-4 acre district norm`,
-    'GEOGRAPHIC_INCONSISTENCY': 'GPS coordinates fall outside recognized revenue / forest village boundary',
-    'POSSIBLE_DUPLICATE': 'Identical claimant details matched with another pending application',
-    'HISTORICAL_CANOPY_CLEARING': 'Satellite NDVI shows dense canopy in 2005 with clearing post-2010 (potential cut-off issue)',
-    'PROTECTED_ZONE_OVERLAP': 'Plot falls within sensitive buffer of gazetted Wildlife Sanctuary or National Park'
+  const anomalyBadges = {
+    'DELAYED_CLAIM': { icon: 'clock', stat: `${currentClaim.days_pending}d Pending`, label: 'Statutory Delay', desc: `+${Math.max(0, currentClaim.days_pending - 180)}d over 180d rule` },
+    'LAND_RECORD_MISMATCH': { icon: 'file-diff', stat: `${currentClaim.area_acres} vs ${currentClaim.recorded_area ?? 4.2} ac`, label: 'Area Mismatch', desc: 'Cadastral variance' },
+    'INCOMPLETE_DOCUMENTATION': { icon: 'file-x', stat: 'Missing Records', label: 'Incomplete', desc: 'Gram Sabha proof needed' },
+    'UNUSUAL_AREA': { icon: 'maximize', stat: `${currentClaim.area_acres} Acres`, label: 'Area Outlier', desc: '>95th percentile norm' },
+    'GEOGRAPHIC_INCONSISTENCY': { icon: 'map-pin-off', stat: 'Boundary Clash', label: 'Geo Inconsistent', desc: 'Outside forest beat' },
+    'POSSIBLE_DUPLICATE': { icon: 'copy', stat: 'Duplicate Match', label: 'Duplicate', desc: 'Matched village claimant' },
+    'HISTORICAL_CANOPY_CLEARING': { icon: 'trees', stat: 'Post-2005 Clearing', label: 'Cut-off Risk', desc: 'Canopy cleared post-2010' },
+    'PROTECTED_ZONE_OVERLAP': { icon: 'shield-alert', stat: 'Eco-Buffer Zone', label: 'Sanctuary Conflict', desc: 'Within 15km buffer' }
   };
 
   if (anomalyTypes.length === 0) {
     flaggedList.innerHTML = `
-      <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-800 dark:text-emerald-300 flex items-center space-x-2">
+      <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-xl text-xs text-emerald-800 dark:text-emerald-300 flex items-center space-x-2">
         <i data-lucide="shield-check" class="w-4 h-4 text-emerald-600 dark:text-emerald-400"></i>
-        <span>No anomalies flagged. Claim records meet standard automated compliance rules.</span>
+        <span>No anomalies flagged · Standard statutory compliance verified</span>
       </div>
     `;
   } else {
-    flaggedList.innerHTML = anomalyTypes.map(type => `
-      <div class="p-2.5 bg-amber-50/80 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-900/50 rounded-lg text-xs text-stone-800 dark:text-stone-200 flex items-start space-x-2.5">
-        <i data-lucide="alert-triangle" class="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5"></i>
-        <div>
-          <strong class="text-amber-900 dark:text-amber-300 block font-mono text-[11px] mb-0.5">${type}</strong>
-          <span class="text-stone-600 dark:text-stone-300">${anomalyDescriptions[type] || 'Flagged for administrative verification'}</span>
-        </div>
-      </div>
-    `).join('');
+    flaggedList.innerHTML = `
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+        ${anomalyTypes.map(type => {
+          const info = anomalyBadges[type] || { icon: 'alert-triangle', stat: 'Review', label: type, desc: 'Verification required' };
+          return `
+            <div class="bg-amber-500/10 dark:bg-amber-950/30 border border-amber-500/25 dark:border-amber-900/50 rounded-xl p-3 flex flex-col justify-between space-y-1 hover:border-amber-500/50 transition">
+              <div class="flex items-center justify-between">
+                <span class="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-700 dark:text-amber-400">${info.label}</span>
+                <i data-lucide="${info.icon}" class="w-3.5 h-3.5 text-amber-600 dark:text-amber-400"></i>
+              </div>
+              <div class="font-mono font-black text-sm text-stone-900 dark:text-white">${info.stat}</div>
+              <div class="text-[10px] text-stone-500 dark:text-stone-400 font-medium truncate">${info.desc}</div>
+            </div>`;
+        }).join('')}
+      </div>`;
   }
 
   // Raw Ground Truth Evidence Grid
@@ -1182,30 +1188,39 @@ async function renderExplainableEvidence(claimId) {
     console.warn('Evidence API unavailable, using client-side fallback');
   }
 
+  const card = document.getElementById('card-quantitative-evidence');
   const evidenceBlocks = payload?.evidence || [];
   if (!evidenceBlocks.length) {
-    container.innerHTML = `
-      <div class="p-3 bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 rounded-lg text-xs text-emerald-800 dark:text-emerald-300">
-        No anomalies flagged. Claim is within normal automated screening parameters.
-      </div>`;
+    if (card) card.classList.add('hidden');
     return;
   }
 
+  if (card) card.classList.remove('hidden');
   container.innerHTML = evidenceBlocks.map(block => {
-    const metricsHtml = Object.entries(block.metrics || {}).map(([k, v]) =>
-      `<div class="flex justify-between gap-2 text-[11px]"><span class="text-stone-500 dark:text-stone-400">${k.replace(/_/g, ' ')}</span><span class="font-mono font-semibold text-stone-900 dark:text-stone-100">${v}</span></div>`
-    ).join('');
+    const metricsHtml = Object.entries(block.metrics || {}).slice(0, 4).map(([k, v]) =>
+      `<span class="text-[10px] bg-stone-100 dark:bg-stone-800 px-2 py-0.5 rounded font-mono text-stone-700 dark:text-stone-300"><span class="text-stone-400">${k.replace(/_/g, ' ')}:</span> ${v}</span>`
+    ).join(' ');
 
     return `
-      <div class="border border-amber-200 dark:border-amber-900/60 bg-amber-50/50 dark:bg-amber-950/20 rounded-lg p-3">
-        <div class="flex items-center justify-between gap-2 mb-2">
-          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-900 dark:text-amber-300 font-mono">${block.type}</span>
-          <span class="text-[10px] text-amber-700 dark:text-amber-400 font-medium">⚠ ${block.severity_hint || 'Potential anomaly'}</span>
+      <div class="border border-stone-200 dark:border-stone-800 bg-stone-50 dark:bg-stone-900/60 rounded-xl p-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div>
+          <span class="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 font-mono">${block.label || block.type}</span>
+          <div class="flex items-center gap-1.5 flex-wrap mt-1">${metricsHtml}</div>
         </div>
-        <div class="grid grid-cols-1 gap-1.5 mb-2 bg-white/90 dark:bg-stone-900/70 rounded-md p-2.5 border border-amber-100 dark:border-amber-900/40">${metricsHtml}</div>
-        <p class="text-[11px] text-stone-700 dark:text-stone-300 leading-relaxed"><strong class="text-stone-900 dark:text-stone-100">Why flagged:</strong> ${block.explanation}</p>
+        <span class="text-[10px] font-mono font-bold text-stone-500 shrink-0">Auditable</span>
       </div>`;
   }).join('');
+}
+
+function selectQuickAction(val, btn) {
+  const sel = document.getElementById('action-type-select');
+  if (sel) sel.value = val;
+  document.querySelectorAll('.action-chip').forEach(c => {
+    c.className = 'action-chip py-2 px-2 rounded-xl border border-stone-200 dark:border-stone-700 hover:border-amber-400 text-stone-700 dark:text-stone-300 font-semibold text-center transition flex flex-col items-center gap-1 cursor-pointer';
+  });
+  if (btn) {
+    btn.className = 'action-chip active-chip py-2 px-2 rounded-xl border border-amber-500 bg-amber-500/10 text-amber-900 dark:text-amber-300 font-bold text-center transition flex flex-col items-center gap-1 cursor-pointer';
+  }
 }
 
 // Satellite Temporal NDVI & Protected Area Geo-Fencing
@@ -1328,23 +1343,27 @@ async function loadClaimSpatialAnalysis(claimId) {
   const paBox = document.getElementById('protected-zone-box');
   if (paBox && pa) {
     const isConflict = pa.conflict_severity === 'Critical' || pa.conflict_severity === 'High';
-    paBox.className = `p-3 rounded-lg border text-xs ${
-      isConflict 
-        ? 'bg-orange-50 dark:bg-orange-950/30 border-orange-200 dark:border-orange-900/50 text-orange-950 dark:text-orange-200' 
-        : 'bg-stone-50 dark:bg-stone-900/60 border-stone-200 dark:border-stone-800 text-stone-800 dark:text-stone-200'
-    }`;
+    paBox.className = '';
     paBox.innerHTML = `
-      <div class="flex justify-between items-start mb-1">
-        <strong class="font-bold text-stone-900 dark:text-white text-xs">${pa.name}</strong>
-        <span class="font-mono font-bold text-[11px] ${isConflict ? 'text-red-600 dark:text-red-400' : 'text-stone-600 dark:text-stone-400'}">${pa.distance_km} km away</span>
+      <div class="flex items-center justify-between gap-3 text-xs">
+        <div class="flex items-center space-x-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl ${isConflict ? 'bg-orange-500/10 text-orange-600 dark:text-orange-400' : 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'} flex items-center justify-center shrink-0">
+            <i data-lucide="trees" class="w-4 h-4"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="font-bold text-stone-900 dark:text-white text-xs truncate">${pa.name}</div>
+            <div class="text-[10px] text-stone-500 dark:text-stone-400 flex items-center gap-1.5 flex-wrap">
+              <span>${pa.type}</span>
+              <span>•</span>
+              <span class="${isConflict ? 'text-orange-600 dark:text-orange-400 font-semibold' : 'text-stone-600'}">${pa.buffer_status}</span>
+            </div>
+          </div>
+        </div>
+        <div class="text-right shrink-0">
+          <div class="font-mono font-black text-sm ${isConflict ? 'text-orange-600 dark:text-orange-400' : 'text-stone-800 dark:text-stone-200'}">${pa.distance_km} km</div>
+          <span class="text-[9px] font-mono uppercase text-stone-400 font-bold">${isConflict ? 'Buffer Advisory' : 'Safe Radius'}</span>
+        </div>
       </div>
-      <div class="text-[11px] text-stone-600 dark:text-stone-400 mb-1">
-        <span>Zone: <strong>${pa.type}</strong></span> • 
-        <span>Buffer Status: <strong class="${isConflict ? 'text-red-600 dark:text-red-400' : 'text-stone-700 dark:text-stone-300'}">${pa.buffer_status}</strong></span>
-      </div>
-      <p class="text-[10px] text-stone-500 dark:text-stone-400 mt-1 italic">
-        Section 4(2) Advisory: ${isConflict ? 'Prior statutory wildlife corridor clearance required before granting tenure.' : 'Outside immediate Critical Tiger Habitat core boundaries.'}
-      </p>
     `;
 
     // Draw buffer circle on mini-map
