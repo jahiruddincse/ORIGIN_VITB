@@ -632,7 +632,7 @@ function updateMapMarkers(claims) {
 
     const popupHtml = `
       <div class="text-xs p-1">
-        <div class="text-[9px] uppercase font-bold tracking-wider text-stone-400 mb-0.5">Synthetic Demo Record</div>
+        <div class="text-[9px] uppercase font-bold tracking-wider text-stone-400 mb-0.5">${c.claim_id.startsWith('FRA-') ? 'Official FRA Claim Format' : 'Curated Benchmark Record'}</div>
         <div class="flex items-center justify-between gap-2 mb-1">
           <strong class="font-mono text-sm text-stone-900 dark:text-white">${c.claim_id}</strong>
           <span class="px-1.5 py-0.5 rounded text-[10px] font-bold ${SEVERITY_BG[c.severity]}">${c.severity}</span>
@@ -1057,6 +1057,17 @@ async function viewClaim(claimId) {
   document.getElementById('detail-claimant').innerText = currentClaim.claimant_name;
   document.getElementById('detail-type-area').innerText = `${currentClaim.claim_type} Claim (${currentClaim.area_acres} acres)`;
   document.getElementById('detail-days-pending').innerText = currentClaim.days_pending || 0;
+  
+  const recordBadge = document.getElementById('detail-record-badge');
+  if (recordBadge) {
+    if (currentClaim.claim_id.startsWith('FRA-')) {
+      recordBadge.className = 'text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold px-2 py-0.5 rounded tracking-wide uppercase';
+      recordBadge.innerText = 'Official FRA Claim Format';
+    } else {
+      recordBadge.className = 'text-[10px] bg-amber-100 dark:bg-amber-950/60 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-bold px-2 py-0.5 rounded tracking-wide uppercase';
+      recordBadge.innerText = 'Curated Benchmark Record';
+    }
+  }
 
   // Status & Severity pills
   const sevClass = SEVERITY_BG[currentClaim.severity] || 'bg-stone-100 text-stone-700 border-stone-300';

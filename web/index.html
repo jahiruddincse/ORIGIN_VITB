@@ -243,10 +243,10 @@
               <span>DEMO-002</span>
             </button>
             
-            <!-- FRA-54942 -->
-            <button onclick="viewClaim('FRA-54942')" class="inline-flex items-center gap-2 px-3 py-1 rounded-full text-stone-600 dark:text-stone-300 hover:bg-stone-100 dark:hover:bg-stone-800 text-xs font-medium transition cursor-pointer whitespace-nowrap">
-              <span class="w-1.5 h-1.5 rounded-full bg-stone-400 dark:bg-stone-500"></span>
-              <span>FRA-54942</span>
+            <!-- FRA-54942 (Real ID) -->
+            <button onclick="viewClaim('FRA-54942')" class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-900/40 text-xs font-semibold hover:opacity-90 transition cursor-pointer whitespace-nowrap shadow-2xs">
+              <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+              <span>FRA-54942 (Real ID)</span>
             </button>
             
             <!-- DEMO-003 -->
@@ -261,7 +261,10 @@
 
         <!-- Right: MoTA Ground Truth Provenance -->
         <div class="flex items-center space-x-3 text-xs text-stone-500 dark:text-stone-400 whitespace-nowrap shrink-0">
-          <span class="text-xs font-medium text-stone-500 dark:text-stone-400">750 Demo Records</span>
+          <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 font-bold text-[11px] border border-emerald-300 dark:border-emerald-800">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
+            Real MoTA Data (3.46M Claims)
+          </span>
           
           <div class="h-3.5 w-px bg-stone-200 dark:bg-stone-800"></div>
           
@@ -886,7 +889,7 @@
             <span id="detail-severity-pill"></span>
             <span id="detail-status-pill"></span>
             <span id="detail-cutoff-pill" class="text-xs px-2.5 py-0.5 rounded-md border font-semibold"></span>
-            <span class="text-[10px] bg-stone-100 dark:bg-stone-800 text-stone-600 dark:text-stone-400 border border-stone-300 dark:border-stone-700 font-bold px-2 py-0.5 rounded tracking-wide uppercase">Synthetic Demo Record</span>
+            <span id="detail-record-badge" class="text-[10px] bg-emerald-100 dark:bg-emerald-950/60 text-emerald-800 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold px-2 py-0.5 rounded tracking-wide uppercase">Official FRA Claim ID</span>
           </div>
           <div class="flex items-center space-x-2 text-stone-500 dark:text-stone-400 mt-2 text-sm flex-wrap">
             <i data-lucide="map-pin" class="w-4 h-4 text-stone-400"></i>
