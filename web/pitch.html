@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>VanRaksha AI — Pitch Deck (PS-7)</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700;800&display=swap" rel="stylesheet">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            forest: {
+              50: '#f0fdf4',
+              100: '#dcfce7',
+              500: '#22c55e',
+              700: '#15803d',
+              800: '#166534',
+              900: '#14532d',
+              950: '#052e16',
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body {
+      background-color: #0c0f12;
+      color: #18181b;
+      user-select: none;
+      -webkit-font-smoothing: antialiased;
+    }
+    .slide-canvas {
+      aspect-ratio: 16 / 9;
+      background: #fafaf9;
+    }
+    @media (max-aspect-ratio: 16/9) {
+      .slide-canvas {
+        width: 100vw;
+        height: 56.25vw;
+      }
+    }
+    @media (min-aspect-ratio: 16/9) {
+      .slide-canvas {
+        height: 94vh;
+        width: 167.11vh;
+      }
+    }
+    .active-dot {
+      background-color: #047857;
+      width: 2rem;
+    }
+    /* Smooth slide animations */
+    .slide-item {
+      display: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+    .slide-item.active {
+      display: flex;
+      opacity: 1;
+      transform: translateY(0);
+    }
+    @media print {
+      body {
+        background: white;
+      }
+      .no-print {
+        display: none !important;
+      }
+      .slide-canvas {
+        width: 100% !important;
+        height: 100% !important;
+        page-break-after: always;
+        box-shadow: none !important;
+        border: none !important;
+      }
+      .slide-item {
+        display: flex !important;
+        opacity: 1 !important;
+        transform: none !important;
+      }
+    }
+  </style>
+</head>
+<body class="h-screen w-screen overflow-hidden flex flex-col items-center justify-center">
+
+  <!-- Top Controller Bar (No-Print) -->
+  <header class="no-print w-full max-w-7xl px-6 py-2 flex items-center justify-between text-xs text-stone-400">
+    <div class="flex items-center gap-3">
+      <a href="/" class="flex items-center gap-2 text-stone-200 hover:text-white transition font-bold">
+        <span class="w-6 h-6 rounded bg-emerald-600 flex items-center justify-center text-white text-xs">🛡️</span>
+        <span>VanRaksha AI</span>
+      </a>
+      <span class="text-stone-600">•</span>
+      <span class="px-2 py-0.5 rounded bg-emerald-950/80 text-emerald-400 border border-emerald-800/60 font-mono font-bold">PS-7 : AI + Development</span>
+      <span class="hidden sm:inline text-stone-500 font-medium">Hackathon Pitch Deck</span>
+    </div>
+
+    <div class="flex items-center gap-4">
+      <div class="flex items-center gap-1.5 font-mono text-stone-300">
+        <span id="currentSlideNum" class="font-bold text-emerald-400 text-sm">1</span>
+        <span class="text-stone-600">/</span>
+        <span>7</span>
+      </div>
+      <div class="flex items-center gap-1">
+        <button onclick="prevSlide()" class="p-1.5 px-3 rounded-lg bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-800 transition font-bold" title="Previous (←)">←</button>
+        <button onclick="nextSlide()" class="p-1.5 px-3 rounded-lg bg-emerald-700 hover:bg-emerald-600 text-white transition font-bold shadow-sm" title="Next (→ / Space)">→</button>
+      </div>
+      <button onclick="window.print()" class="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-stone-900 hover:bg-stone-800 text-stone-300 border border-stone-800 transition" title="Print to PDF">
+        <span>🖨️</span>
+        <span>PDF</span>
+      </button>
+      <a href="/" class="px-3 py-1.5 rounded-lg bg-stone-800 hover:bg-stone-700 text-stone-200 font-semibold transition text-xs">
+        Exit to App ↗
+      </a>
+    </div>
+  </header>
+
+  <!-- Presentation Canvas (Strict 16:9) -->
+  <main id="deckContainer" class="slide-canvas rounded-2xl shadow-2xl border border-stone-200/80 overflow-hidden relative flex flex-col justify-between p-10 md:p-14 bg-[#FAF9F6]">
+
+    <!-- ==========================================
+         SLIDE 1 — PROBLEM / HOOK
+         ========================================== -->
+    <section class="slide-item active h-full flex-col justify-between" data-slide="1">
+      <!-- Header -->
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-200/80 text-stone-700 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            PS-7 • Problem Statement
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            FOREST RIGHTS DATA<br/><span class="text-rose-600">IS FRAGMENTED.</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-mono uppercase tracking-widest text-stone-400 block font-bold">Category</span>
+          <span class="text-sm font-bold text-stone-800">AI + Development</span>
+        </div>
+      </div>
+
+      <!-- Hero Visual: 3 Disconnected Silos transforming to Failure Chain -->
+      <div class="grid grid-cols-12 gap-6 my-auto items-center">
+        <!-- 3 Disconnected Silos -->
+        <div class="col-span-6 grid grid-cols-3 gap-4">
+          <!-- Silo 1 -->
+          <div class="bg-white border-2 border-dashed border-stone-300 rounded-2xl p-5 text-center shadow-sm flex flex-col items-center justify-center aspect-[4/5] relative">
+            <span class="absolute -top-3 px-2 py-0.5 bg-stone-100 text-[10px] font-mono font-bold text-stone-500 rounded border border-stone-300">SILO 1</span>
+            <span class="text-4xl mb-3">📄</span>
+            <h3 class="font-black text-stone-900 text-base uppercase tracking-wide">Claims</h3>
+            <p class="text-xs text-stone-500 mt-1 font-medium">Physical paper & district registers</p>
+            <div class="mt-4 px-2 py-1 bg-stone-100 text-[10px] text-stone-600 font-mono rounded">Gram Sabha Level</div>
+          </div>
+          <!-- Silo 2 -->
+          <div class="bg-white border-2 border-dashed border-stone-300 rounded-2xl p-5 text-center shadow-sm flex flex-col items-center justify-center aspect-[4/5] relative">
+            <span class="absolute -top-3 px-2 py-0.5 bg-stone-100 text-[10px] font-mono font-bold text-stone-500 rounded border border-stone-300">SILO 2</span>
+            <span class="text-4xl mb-3">✓</span>
+            <h3 class="font-black text-stone-900 text-base uppercase tracking-wide">Approvals</h3>
+            <p class="text-xs text-stone-500 mt-1 font-medium">Monthly static PDF reports</p>
+            <div class="mt-4 px-2 py-1 bg-stone-100 text-[10px] text-stone-600 font-mono rounded">MoTA / State Portals</div>
+          </div>
+          <!-- Silo 3 -->
+          <div class="bg-white border-2 border-dashed border-stone-300 rounded-2xl p-5 text-center shadow-sm flex flex-col items-center justify-center aspect-[4/5] relative">
+            <span class="absolute -top-3 px-2 py-0.5 bg-stone-100 text-[10px] font-mono font-bold text-stone-500 rounded border border-stone-300">SILO 3</span>
+            <span class="text-4xl mb-3">🗺️</span>
+            <h3 class="font-black text-stone-900 text-base uppercase tracking-wide">Land / GIS</h3>
+            <p class="text-xs text-stone-500 mt-1 font-medium">Isolated cadastre & forest maps</p>
+            <div class="mt-4 px-2 py-1 bg-stone-100 text-[10px] text-stone-600 font-mono rounded">Revenue & FSI Portals</div>
+          </div>
+        </div>
+
+        <!-- Disconnect Indicator -->
+        <div class="col-span-1 flex flex-col items-center justify-center text-stone-400 font-black text-2xl">
+          <span>➔</span>
+        </div>
+
+        <!-- Resulting Problem Cascade -->
+        <div class="col-span-5 bg-stone-900 text-white rounded-2xl p-6 shadow-xl border border-stone-800">
+          <span class="text-[10px] font-mono uppercase font-bold text-rose-400 tracking-wider">The Consequence</span>
+          <div class="mt-4 space-y-3">
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-stone-800/80 border border-stone-700/60">
+              <span class="w-8 h-8 rounded-lg bg-stone-700 flex items-center justify-center font-bold text-sm">1</span>
+              <div>
+                <h4 class="text-sm font-bold text-stone-100">Fragmented Data</h4>
+                <p class="text-xs text-stone-400">Records isolated across departments</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-center text-stone-600 text-xs">↓</div>
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-stone-800/80 border border-stone-700/60">
+              <span class="w-8 h-8 rounded-lg bg-amber-900/60 text-amber-300 flex items-center justify-center font-bold text-sm">2</span>
+              <div>
+                <h4 class="text-sm font-bold text-amber-200">Difficult Monitoring</h4>
+                <p class="text-xs text-stone-400">Officials lack cross-state spatial visibility</p>
+              </div>
+            </div>
+            <div class="flex items-center justify-center text-stone-600 text-xs">↓</div>
+            <div class="flex items-center gap-3 p-3 rounded-xl bg-rose-950/80 border border-rose-800/60">
+              <span class="w-8 h-8 rounded-lg bg-rose-800 text-white flex items-center justify-center font-bold text-sm">3</span>
+              <div>
+                <h4 class="text-sm font-bold text-rose-200">Missed Anomalies</h4>
+                <p class="text-xs text-rose-300/80">Years-delayed claims & boundary conflicts go unnoticed</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 1 / 7</span>
+        <span class="font-bold text-stone-700">5-Second Takeaway: Disconnected silos make monitoring impossible and hide anomalies.</span>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         SLIDE 2 — SOLUTION / SYSTEM ARCHITECTURE
+         ========================================== -->
+    <section class="slide-item h-full flex-col justify-between" data-slide="2">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            The VanRaksha AI Architecture
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            ONE VIEW. <span class="text-emerald-700">THREE DECISIONS.</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-mono uppercase tracking-widest text-emerald-700 font-bold block">Direct PS-7 Mapping</span>
+          <span class="text-sm font-bold text-stone-800">100% Deliverable Match</span>
+        </div>
+      </div>
+
+      <!-- Dominant System Architecture Diagram -->
+      <div class="grid grid-cols-12 gap-5 my-auto items-center">
+        <!-- 4 Inputs -->
+        <div class="col-span-3 space-y-2.5">
+          <span class="text-[10px] font-mono uppercase font-bold text-stone-400 tracking-wider block">Input Sources</span>
+          <div class="p-3 bg-white border border-stone-200 rounded-xl shadow-sm flex items-center gap-2.5">
+            <span class="text-lg">📄</span>
+            <span class="text-xs font-bold text-stone-800">FRA Claims</span>
+          </div>
+          <div class="p-3 bg-white border border-stone-200 rounded-xl shadow-sm flex items-center gap-2.5">
+            <span class="text-lg">✓</span>
+            <span class="text-xs font-bold text-stone-800">MoTA Approvals</span>
+          </div>
+          <div class="p-3 bg-white border border-stone-200 rounded-xl shadow-sm flex items-center gap-2.5">
+            <span class="text-lg">🗺️</span>
+            <span class="text-xs font-bold text-stone-800">Land & Forest GIS</span>
+          </div>
+          <div class="p-3 bg-white border border-stone-200 rounded-xl shadow-sm flex items-center gap-2.5">
+            <span class="text-lg">🏛️</span>
+            <span class="text-xs font-bold text-stone-800">District Cadastres</span>
+          </div>
+        </div>
+
+        <!-- Arrow In -->
+        <div class="col-span-1 flex justify-center text-emerald-600 font-bold text-xl">➔</div>
+
+        <!-- Center Engine: VanRaksha AI -->
+        <div class="col-span-4 bg-emerald-950 text-white rounded-2xl p-6 text-center shadow-xl border border-emerald-800 relative">
+          <div class="w-12 h-12 rounded-xl bg-emerald-500/20 border border-emerald-400/30 flex items-center justify-center text-2xl mx-auto mb-3">🛡️</div>
+          <h3 class="text-xl font-black tracking-tight text-white">VANRAKSHA AI</h3>
+          <p class="text-xs font-mono text-emerald-400 mt-1 uppercase tracking-wider font-bold">Spatial Intelligence Engine</p>
+          <div class="mt-4 pt-3 border-t border-emerald-800/80 text-[11px] text-emerald-200/90 leading-relaxed font-medium">
+            Cross-references claim metadata, GPS plots, satellite imagery & statutory timelines in real time.
+          </div>
+        </div>
+
+        <!-- Arrow Out -->
+        <div class="col-span-1 flex justify-center text-emerald-600 font-bold text-xl">➔</div>
+
+        <!-- 3 Required Outputs -->
+        <div class="col-span-3 space-y-2.5">
+          <span class="text-[10px] font-mono uppercase font-bold text-stone-400 tracking-wider block">3 PS-7 Outputs</span>
+          <!-- Output 1 -->
+          <div class="p-3 bg-white border-2 border-emerald-500/30 rounded-xl shadow-sm">
+            <div class="flex items-center gap-2 text-emerald-700 font-bold text-xs">
+              <span>🗺️</span>
+              <span>WebGIS Map View</span>
+            </div>
+            <p class="text-[11px] text-stone-500 mt-0.5 italic">“Where are the claims?”</p>
+          </div>
+          <!-- Output 2 -->
+          <div class="p-3 bg-white border-2 border-amber-500/40 rounded-xl shadow-sm">
+            <div class="flex items-center gap-2 text-amber-700 font-bold text-xs">
+              <span>⚠️</span>
+              <span>Anomaly Detection</span>
+            </div>
+            <p class="text-[11px] text-stone-500 mt-0.5 italic">“What needs attention?”</p>
+          </div>
+          <!-- Output 3 -->
+          <div class="p-3 bg-white border-2 border-blue-500/30 rounded-xl shadow-sm">
+            <div class="flex items-center gap-2 text-blue-700 font-bold text-xs">
+              <span>📊</span>
+              <span>Decision Support</span>
+            </div>
+            <p class="text-[11px] text-stone-500 mt-0.5 italic">“What is happening across states?”</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 2 / 7</span>
+        <span class="font-bold text-stone-700">5-Second Takeaway: One integrated platform directly delivers all three PS-7 requirements.</span>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         SLIDE 3 — WEBGIS
+         ========================================== -->
+    <section class="slide-item h-full flex-col justify-between" data-slide="3">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-200/80 text-stone-700 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            PS-7 Requirement 1 • WebGIS
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            SEE CLAIMS WHERE THEY <span class="text-emerald-700">ACTUALLY ARE.</span>
+          </h1>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-2.5 py-1 rounded bg-amber-50 text-amber-700 border border-amber-200 text-xs font-mono font-bold">
+            Mock FRA Claim Data
+          </span>
+        </div>
+      </div>
+
+      <!-- Main WebGIS UI Mockup & Dashboard -->
+      <div class="grid grid-cols-12 gap-5 my-auto">
+        <!-- Map Canvas (Hero) -->
+        <div class="col-span-8 bg-stone-900 rounded-2xl p-3 shadow-lg border border-stone-800 relative overflow-hidden flex flex-col justify-between min-h-[300px]">
+          <!-- Map Toolbar Overlay -->
+          <div class="flex items-center justify-between bg-stone-950/80 backdrop-blur-md px-3 py-2 rounded-xl border border-stone-800 z-10 text-xs text-stone-300">
+            <div class="flex items-center gap-2">
+              <span class="font-bold text-white">📍 District View: Mandla & Seoni (MP)</span>
+              <span class="text-stone-600">|</span>
+              <span class="text-[10px] text-emerald-400 font-mono">Esri Satellite + FSI Boundary</span>
+            </div>
+            <div class="flex items-center gap-1.5 font-mono text-[10px]">
+              <span class="px-2 py-0.5 bg-stone-800 text-stone-200 rounded">Zoom: Level 9</span>
+              <span class="px-2 py-0.5 bg-emerald-950 text-emerald-300 rounded border border-emerald-800">Layers: Active</span>
+            </div>
+          </div>
+
+          <!-- Stylized Map Canvas with Pins -->
+          <div class="relative flex-1 my-3 rounded-lg overflow-hidden flex items-center justify-center bg-[radial-gradient(#1e293b_1px,transparent_1px)] [background-size:16px_16px] bg-stone-950">
+            <!-- Simulated Cadastral Polygons -->
+            <div class="absolute inset-0 opacity-25">
+              <svg class="w-full h-full" viewBox="0 0 400 200">
+                <polygon points="50,40 180,30 160,110 40,90" fill="#047857" stroke="#10b981" stroke-width="1.5" stroke-dasharray="3,3" />
+                <polygon points="190,40 320,60 300,160 170,120" fill="#b45309" stroke="#f59e0b" stroke-width="1.5" />
+                <polygon points="70,115 155,125 140,185 60,170" fill="#991b1b" stroke="#ef4444" stroke-width="2" />
+              </svg>
+            </div>
+
+            <!-- Claim Markers -->
+            <div class="absolute top-[35%] left-[28%] flex items-center gap-1">
+              <span class="w-4 h-4 rounded-full bg-emerald-500 border-2 border-white shadow-md animate-pulse"></span>
+              <span class="bg-stone-900/90 text-white text-[9px] px-1.5 py-0.5 rounded font-mono border border-stone-700">Approved • Normal</span>
+            </div>
+            <div class="absolute top-[50%] left-[55%] flex items-center gap-1">
+              <span class="w-4 h-4 rounded-full bg-amber-500 border-2 border-white shadow-md"></span>
+              <span class="bg-stone-900/90 text-white text-[9px] px-1.5 py-0.5 rounded font-mono border border-stone-700">Pending • Delayed</span>
+            </div>
+            <div class="absolute bottom-[25%] left-[30%] flex items-center gap-1 z-20">
+              <span class="w-5 h-5 rounded-full bg-rose-600 border-2 border-white shadow-lg flex items-center justify-center text-[10px] text-white font-black">!</span>
+              <div class="bg-rose-950/95 text-rose-100 text-[10px] p-1.5 rounded-lg font-mono border border-rose-700 shadow-xl">
+                <span class="font-bold text-white block">DEMO-003 • CRITICAL</span>
+                <span>Area Mismatch & 187d Delay</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bottom Legend -->
+          <div class="flex items-center justify-between text-[11px] font-mono text-stone-400 bg-stone-950/80 px-3 py-1.5 rounded-xl border border-stone-800">
+            <div class="flex items-center gap-4">
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Normal</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Delayed Claim</span>
+              <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-600"></span> Severe Mismatch</span>
+            </div>
+            <span class="text-stone-500">Interactive WebGIS</span>
+          </div>
+        </div>
+
+        <!-- Metrics & Feature Callouts -->
+        <div class="col-span-4 flex flex-col justify-between space-y-3">
+          <!-- 4 KPI Metrics Grid -->
+          <div class="grid grid-cols-2 gap-2.5">
+            <div class="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+              <span class="text-[10px] font-mono text-stone-400 uppercase font-bold block">Total Claims</span>
+              <span class="text-2xl font-black font-mono text-stone-900">750</span>
+              <span class="text-[10px] text-stone-500 block">8 States Covered</span>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+              <span class="text-[10px] font-mono text-emerald-600 uppercase font-bold block">Approved</span>
+              <span class="text-2xl font-black font-mono text-emerald-700">451</span>
+              <span class="text-[10px] text-emerald-600/80 block">60.1% Rate</span>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+              <span class="text-[10px] font-mono text-amber-600 uppercase font-bold block">Pending</span>
+              <span class="text-2xl font-black font-mono text-amber-700">218</span>
+              <span class="text-[10px] text-stone-500 block">Avg 142 Days</span>
+            </div>
+            <div class="bg-white p-3 rounded-xl border border-stone-200 shadow-sm">
+              <span class="text-[10px] font-mono text-rose-600 uppercase font-bold block">Flagged</span>
+              <span class="text-2xl font-black font-mono text-rose-600">81</span>
+              <span class="text-[10px] text-rose-700 font-bold block">10.8% Anomaly</span>
+            </div>
+          </div>
+
+          <!-- UI Callout Highlights -->
+          <div class="bg-stone-100 rounded-xl p-3 border border-stone-200 text-xs space-y-2">
+            <span class="text-[10px] font-mono uppercase font-bold text-stone-500 tracking-wider block">Key GIS Features</span>
+            <div class="flex items-start gap-2 text-stone-700">
+              <span class="text-emerald-700 font-bold">✓</span>
+              <span><strong>District Filtering:</strong> Instant drilldown to subdivision committees.</span>
+            </div>
+            <div class="flex items-start gap-2 text-stone-700">
+              <span class="text-emerald-700 font-bold">✓</span>
+              <span><strong>Spectral Baseline:</strong> Esri Satellite overlay reveals 2005 forest cut-off.</span>
+            </div>
+            <div class="flex items-start gap-2 text-stone-700">
+              <span class="text-emerald-700 font-bold">✓</span>
+              <span><strong>Dossier Inspector:</strong> Click any pin to open ground evidence.</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 3 / 7</span>
+        <span class="font-bold text-stone-700">5-Second Takeaway: Every claim is geocoded and color-coded by statutory urgency.</span>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         SLIDE 4 — AI ANOMALY DETECTION
+         ========================================== -->
+    <section class="slide-item h-full flex-col justify-between" data-slide="4">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-rose-100 text-rose-800 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            PS-7 Requirement 2 • AI Layer
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            THE AI FINDS WHAT <span class="text-rose-600">DESERVES ATTENTION.</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-mono text-stone-500 block font-bold">Transparent Rules + LLM Synthesis</span>
+          <span class="text-xs font-mono text-emerald-700 font-bold">No Black Box • 100% Explainable</span>
+        </div>
+      </div>
+
+      <!-- Visual Pipeline & Hero Anomaly Case -->
+      <div class="grid grid-cols-12 gap-5 my-auto">
+        <!-- Left: 6-Step Visual Pipeline -->
+        <div class="col-span-5 bg-white rounded-2xl p-4 border border-stone-200 shadow-sm flex flex-col justify-between">
+          <span class="text-[10px] font-mono uppercase font-bold text-stone-400 tracking-wider">Automated Screening Pipeline</span>
+
+          <div class="space-y-1.5 my-2">
+            <div class="flex items-center gap-2.5 p-2 rounded-lg bg-stone-50 border border-stone-200/80 text-xs font-bold text-stone-800">
+              <span class="w-5 h-5 rounded bg-stone-200 flex items-center justify-center text-[10px] font-mono">1</span>
+              <span>Claim Ingestion</span>
+              <span class="ml-auto text-[10px] text-stone-400 font-mono font-normal">JSON / GIS</span>
+            </div>
+            <div class="text-center text-stone-400 text-[10px]">↓</div>
+            <div class="p-2 rounded-lg bg-stone-50 border border-stone-200/80 text-xs space-y-1">
+              <div class="flex items-center gap-2.5 font-bold text-stone-800">
+                <span class="w-5 h-5 rounded bg-amber-200 text-amber-900 flex items-center justify-center text-[10px] font-mono">2</span>
+                <span>Triple Verification Checks</span>
+              </div>
+              <div class="grid grid-cols-3 gap-1 pt-1 font-mono text-[9px] text-center text-stone-600">
+                <span class="p-1 bg-white rounded border">⏱ Timeline</span>
+                <span class="p-1 bg-white rounded border">🗺 Spatial</span>
+                <span class="p-1 bg-white rounded border">📄 Cadastre</span>
+              </div>
+            </div>
+            <div class="text-center text-stone-400 text-[10px]">↓</div>
+            <div class="flex items-center gap-2.5 p-2 rounded-lg bg-rose-50 border border-rose-200 text-xs font-bold text-rose-900">
+              <span class="w-5 h-5 rounded bg-rose-600 text-white flex items-center justify-center text-[10px] font-mono">3</span>
+              <span>Anomaly Signal & Priority Scoring</span>
+              <span class="ml-auto text-[10px] font-mono text-rose-700">0 – 100</span>
+            </div>
+            <div class="text-center text-stone-400 text-[10px]">↓</div>
+            <div class="flex items-center gap-2.5 p-2 rounded-lg bg-emerald-50 border border-emerald-200 text-xs font-bold text-emerald-900">
+              <span class="w-5 h-5 rounded bg-emerald-600 text-white flex items-center justify-center text-[10px] font-mono">4</span>
+              <span>Gemini LLM Statutory Briefing</span>
+              <span class="ml-auto text-[10px] font-mono text-emerald-700">Action Plan</span>
+            </div>
+          </div>
+
+          <div class="text-[10px] text-stone-500 font-mono text-center bg-stone-100 p-1.5 rounded-lg">
+            Prototype anomaly engine • Honest rule scoring
+          </div>
+        </div>
+
+        <!-- Right: Real Case Study (DEMO-003) -->
+        <div class="col-span-7 bg-stone-900 text-white rounded-2xl p-5 border border-stone-800 shadow-xl flex flex-col justify-between">
+          <div class="flex items-center justify-between pb-3 border-b border-stone-800">
+            <div class="flex items-center gap-2">
+              <span class="px-2 py-0.5 rounded bg-rose-600 text-white font-mono text-xs font-bold">DEMO-003</span>
+              <span class="text-sm font-bold text-stone-200">Seoni, Madhya Pradesh</span>
+            </div>
+            <span class="px-2.5 py-0.5 rounded-full bg-rose-950 text-rose-300 border border-rose-800 text-xs font-mono font-bold">
+              Score: 80/100 • Critical
+            </span>
+          </div>
+
+          <!-- 3 Flagged Signals -->
+          <div class="grid grid-cols-3 gap-2.5 my-3 text-xs">
+            <div class="bg-stone-800/80 p-2.5 rounded-xl border border-stone-700">
+              <span class="text-amber-400 font-mono text-[10px] block font-bold">⏱ SIGNAL 1</span>
+              <span class="font-bold text-stone-100 block mt-1">187 Days Pending</span>
+              <span class="text-[10px] text-stone-400">Exceeds 180-day SLA</span>
+            </div>
+            <div class="bg-stone-800/80 p-2.5 rounded-xl border border-stone-700">
+              <span class="text-rose-400 font-mono text-[10px] block font-bold">🗺 SIGNAL 2</span>
+              <span class="font-bold text-stone-100 block mt-1">Acreage Mismatch</span>
+              <span class="text-[10px] text-stone-400">8.5 claimed vs 4.2 recorded</span>
+            </div>
+            <div class="bg-stone-800/80 p-2.5 rounded-xl border border-stone-700">
+              <span class="text-rose-400 font-mono text-[10px] block font-bold">🛰 SIGNAL 3</span>
+              <span class="font-bold text-stone-100 block mt-1">2005 Forest Cut-off</span>
+              <span class="text-[10px] text-stone-400">Canopy cleared post-2015</span>
+            </div>
+          </div>
+
+          <!-- AI Evidence-Linked Action -->
+          <div class="bg-stone-950 p-3 rounded-xl border border-emerald-800/60 flex items-start gap-3">
+            <span class="text-lg">🤖</span>
+            <div>
+              <span class="text-[10px] font-mono uppercase font-bold text-emerald-400 tracking-wide block">Gemini Decision Support Action</span>
+              <p class="text-xs text-stone-300 leading-snug mt-0.5 font-medium">
+                “Hold approval. Convene Sub-Divisional Committee (SDLC) for physical cadastral re-survey of plot boundaries and mandate claimant identity verification.”
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 4 / 7</span>
+        <span class="font-bold text-stone-700">5-Second Takeaway: AI connects disparate signals to explain WHY a claim was flagged.</span>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         SLIDE 5 — DECISION SUPPORT
+         ========================================== -->
+    <section class="slide-item h-full flex-col justify-between" data-slide="5">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            PS-7 Requirement 3 • Decision Support
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            FROM DATA <span class="text-blue-700">TO PRIORITY.</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-mono text-stone-400 block uppercase font-bold">Executive Panel</span>
+          <span class="text-sm font-bold text-stone-800">State-Wise Triage</span>
+        </div>
+      </div>
+
+      <!-- Funnel on Left, State Progress Cards on Right -->
+      <div class="grid grid-cols-12 gap-5 my-auto">
+        <!-- Visual Funnel -->
+        <div class="col-span-5 bg-white rounded-2xl p-4 border border-stone-200 shadow-sm flex flex-col justify-between">
+          <span class="text-[10px] font-mono uppercase font-bold text-stone-400 tracking-wider">The Administrative Funnel</span>
+
+          <div class="space-y-1.5 my-2">
+            <div class="w-full bg-stone-100 p-2 rounded-lg text-center font-mono font-bold text-xs text-stone-700 border border-stone-200">
+              750 Total Claims
+            </div>
+            <div class="text-center text-stone-400 text-[10px]">↓ (AI Screening)</div>
+            <div class="w-[88%] mx-auto bg-amber-50 p-2 rounded-lg text-center font-mono font-bold text-xs text-amber-800 border border-amber-200">
+              81 Flagged Cases
+            </div>
+            <div class="text-center text-stone-400 text-[10px]">↓ (Severity Ranking)</div>
+            <div class="w-[72%] mx-auto bg-rose-50 p-2 rounded-lg text-center font-mono font-bold text-xs text-rose-800 border border-rose-200">
+              18 Critical Priority Queue
+            </div>
+            <div class="text-center text-stone-400 text-[10px]">↓ (Human Review)</div>
+            <div class="w-[56%] mx-auto bg-emerald-700 p-2 rounded-lg text-center font-mono font-bold text-xs text-white shadow-md">
+              Targeted Action
+            </div>
+          </div>
+
+          <div class="p-2.5 bg-blue-50 rounded-xl border border-blue-200 text-xs text-blue-900 font-medium text-center">
+            Officials don't read 750 files.<br/><strong class="text-blue-950 font-bold">They focus on the 18 that matter today.</strong>
+          </div>
+        </div>
+
+        <!-- State-Wise Monitoring Cards -->
+        <div class="col-span-7 bg-white rounded-2xl p-5 border border-stone-200 shadow-sm flex flex-col justify-between">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-[10px] font-mono uppercase font-bold text-stone-400 tracking-wider">State-Wise Progress & Attention Queue</span>
+            <span class="text-[10px] font-mono text-stone-500">Benchmark: MoTA Data</span>
+          </div>
+
+          <!-- State Progress Rows -->
+          <div class="space-y-2.5">
+            <!-- State 1 -->
+            <div class="p-2.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-stone-900">Odisha</span>
+                <span class="text-[10px] text-stone-500 block">128 claims • 68% approved</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="w-32 bg-stone-200 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-emerald-600 h-full w-[68%]"></div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">Normal</span>
+              </div>
+            </div>
+
+            <!-- State 2 -->
+            <div class="p-2.5 rounded-xl bg-amber-50/70 border border-amber-200 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-stone-900">Madhya Pradesh</span>
+                <span class="text-[10px] text-stone-500 block">106 claims • 51 pending</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="w-32 bg-stone-200 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-amber-500 h-full w-[41%]"></div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-amber-100 text-amber-800 text-[10px] font-mono font-bold">Delayed</span>
+              </div>
+            </div>
+
+            <!-- State 3 -->
+            <div class="p-2.5 rounded-xl bg-rose-50/70 border border-rose-200 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-stone-900">Jharkhand</span>
+                <span class="text-[10px] text-stone-500 block">94 claims • 22 anomalies</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="w-32 bg-stone-200 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-rose-500 h-full w-[35%]"></div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-rose-100 text-rose-800 text-[10px] font-mono font-bold">High Anomaly</span>
+              </div>
+            </div>
+
+            <!-- State 4 -->
+            <div class="p-2.5 rounded-xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+              <div>
+                <span class="text-xs font-bold text-stone-900">Chhattisgarh</span>
+                <span class="text-[10px] text-stone-500 block">112 claims • 58% approved</span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="w-32 bg-stone-200 h-2.5 rounded-full overflow-hidden">
+                  <div class="bg-emerald-600 h-full w-[58%]"></div>
+                </div>
+                <span class="px-2 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-mono font-bold">Moderate</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Attention Indicators -->
+          <div class="flex items-center justify-between pt-2 border-t border-stone-200 text-[11px] font-medium text-stone-600">
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-rose-600"></span> High Anomaly Focus</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-amber-500"></span> Delayed Processing</span>
+            <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-blue-600"></span> Incomplete Records</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 5 / 7</span>
+        <span class="font-bold text-stone-700">5-Second Takeaway: State secretaries immediately see bottlenecks and triage attention.</span>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         SLIDE 6 — END-TO-END DEMO
+         ========================================== -->
+    <section class="slide-item h-full flex-col justify-between" data-slide="6">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-stone-200/80 text-stone-700 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            Product Walkthrough • 5 Steps
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            ONE CLAIM. <span class="text-emerald-700">MAP TO DECISION.</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-mono uppercase tracking-widest text-emerald-700 font-bold block">Officer Workflow</span>
+          <span class="text-sm font-bold text-stone-800">Under 60 Seconds</span>
+        </div>
+      </div>
+
+      <!-- 5 Connected Stages (Micro-UI Cards) -->
+      <div class="grid grid-cols-5 gap-3.5 my-auto">
+        <!-- Stage 1 -->
+        <div class="bg-white rounded-xl p-3.5 border-2 border-stone-200 shadow-sm flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-black text-stone-400">01</span>
+              <span class="text-base">🗺️</span>
+            </div>
+            <h4 class="font-black text-stone-900 text-xs uppercase tracking-wide">Select District</h4>
+            <p class="text-[11px] text-stone-500 mt-1">Officer selects state & district on WebGIS map.</p>
+          </div>
+          <div class="bg-stone-100 p-2 rounded-lg font-mono text-[9px] text-stone-700 border border-stone-200">
+            District: Seoni<br/>State: Madhya Pradesh
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="bg-white rounded-xl p-3.5 border-2 border-stone-200 shadow-sm flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-black text-stone-400">02</span>
+              <span class="text-base">📍</span>
+            </div>
+            <h4 class="font-black text-stone-900 text-xs uppercase tracking-wide">Select Claim</h4>
+            <p class="text-[11px] text-stone-500 mt-1">Clicks red pin on map or flagged claims feed.</p>
+          </div>
+          <div class="bg-stone-100 p-2 rounded-lg font-mono text-[9px] text-stone-700 border border-stone-200">
+            Claim ID: DEMO-003<br/>Claimant: Bhuri Bai
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="bg-rose-50/60 rounded-xl p-3.5 border-2 border-rose-300 shadow-sm flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-black text-rose-500">03</span>
+              <span class="text-base">⚠️</span>
+            </div>
+            <h4 class="font-black text-rose-900 text-xs uppercase tracking-wide">Anomaly Flagged</h4>
+            <p class="text-[11px] text-rose-700 mt-1">System calculates score 80/100 (Critical).</p>
+          </div>
+          <div class="bg-rose-100/80 p-2 rounded-lg font-mono text-[9px] text-rose-800 border border-rose-200">
+            • 187d Delay<br/>• Cadastral Mismatch
+          </div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="bg-white rounded-xl p-3.5 border-2 border-stone-200 shadow-sm flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-black text-stone-400">04</span>
+              <span class="text-base">🔎</span>
+            </div>
+            <h4 class="font-black text-stone-900 text-xs uppercase tracking-wide">Review Evidence</h4>
+            <p class="text-[11px] text-stone-500 mt-1">Checks satellite history & land survey records.</p>
+          </div>
+          <div class="bg-stone-100 p-2 rounded-lg font-mono text-[9px] text-stone-700 border border-stone-200">
+            2005 Baseline: Forest<br/>Canopy Loss: 54%
+          </div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div class="bg-emerald-900 text-white rounded-xl p-3.5 border-2 border-emerald-700 shadow-md flex flex-col justify-between min-h-[220px]">
+          <div>
+            <div class="flex items-center justify-between mb-2">
+              <span class="text-[10px] font-mono font-black text-emerald-300">05</span>
+              <span class="text-base">✓</span>
+            </div>
+            <h4 class="font-black text-white text-xs uppercase tracking-wide">Prioritize Action</h4>
+            <p class="text-[11px] text-emerald-200 mt-1">Routes to SDLC for field re-verification.</p>
+          </div>
+          <div class="bg-emerald-950 p-2 rounded-lg font-mono text-[9px] text-emerald-300 border border-emerald-800">
+            Action: Field Audit<br/>Status: Dispatched
+          </div>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 6 / 7</span>
+        <span class="font-bold text-stone-700">5-Second Takeaway: Complete statutory journey resolved from spatial pinpoint to action plan.</span>
+      </div>
+    </section>
+
+
+    <!-- ==========================================
+         SLIDE 7 — IMPACT / DIFFERENTIATOR
+         ========================================== -->
+    <section class="slide-item h-full flex-col justify-between" data-slide="7">
+      <div class="flex items-start justify-between">
+        <div>
+          <span class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-100 text-emerald-800 text-xs font-mono font-bold tracking-wide uppercase mb-3">
+            Summary & Impact
+          </span>
+          <h1 class="text-4xl md:text-5xl lg:text-6xl font-black tracking-tight text-stone-900 leading-[1.08]">
+            BETTER VISIBILITY. <span class="text-emerald-700">BETTER DECISIONS.</span>
+          </h1>
+        </div>
+        <div class="text-right">
+          <span class="text-xs font-mono uppercase tracking-widest text-stone-400 font-bold block">Final Takeaway</span>
+          <span class="text-sm font-bold text-stone-800">Deployable GovTech</span>
+        </div>
+      </div>
+
+      <!-- Before vs After Comparison -->
+      <div class="grid grid-cols-12 gap-6 my-auto items-center">
+        <!-- Before -->
+        <div class="col-span-5 bg-white border-2 border-stone-200 rounded-2xl p-5 shadow-sm">
+          <span class="px-2.5 py-1 rounded bg-stone-100 text-stone-600 font-mono text-[10px] font-bold uppercase tracking-wider">Before VanRaksha AI</span>
+          <div class="mt-4 space-y-2.5 text-xs text-stone-600 font-medium">
+            <div class="flex items-center gap-2">
+              <span class="text-rose-500 font-bold">✕</span>
+              <span>Scattered paper & spreadsheet records</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-rose-500 font-bold">✕</span>
+              <span>Separate GIS maps without claim overlays</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-rose-500 font-bold">✕</span>
+              <span>Uncoordinated monthly PDF reports</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-rose-500 font-bold">✕</span>
+              <span>Manual searching for backlogged claims</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-stone-200 text-center font-mono text-xs font-bold text-stone-400">
+            “Where should I even look?”
+          </div>
+        </div>
+
+        <!-- Arrow -->
+        <div class="col-span-2 flex flex-col items-center justify-center text-center">
+          <div class="w-10 h-10 rounded-full bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xl mb-1 shadow-sm">➔</div>
+          <span class="text-[10px] font-mono text-emerald-800 font-bold uppercase tracking-widest">Transformation</span>
+        </div>
+
+        <!-- After -->
+        <div class="col-span-5 bg-emerald-950 text-white rounded-2xl p-5 shadow-xl border border-emerald-800">
+          <span class="px-2.5 py-1 rounded bg-emerald-800 text-emerald-200 font-mono text-[10px] font-bold uppercase tracking-wider">With VanRaksha AI</span>
+          <div class="mt-4 space-y-2.5 text-xs text-emerald-100 font-medium">
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span>Unified WebGIS spatial map of all claims</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span>Automated multi-signal anomaly detection</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span>Real-time state progress & bottleneck ranking</span>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="text-emerald-400 font-bold">✓</span>
+              <span>Evidence-linked investigation & prioritized triage</span>
+            </div>
+          </div>
+          <div class="mt-4 pt-3 border-t border-emerald-800 text-center font-mono text-xs font-bold text-emerald-400">
+            “Here is where attention is needed first.”
+          </div>
+        </div>
+      </div>
+
+      <!-- Core Philosophy Box -->
+      <div class="bg-stone-900 text-white p-4 rounded-xl border border-stone-800 flex items-center justify-between">
+        <div class="flex items-center gap-6 font-mono text-xs font-bold">
+          <span class="text-emerald-400">01 MONITOR</span>
+          <span class="text-stone-600">➔</span>
+          <span class="text-amber-400">02 INVESTIGATE</span>
+          <span class="text-stone-600">➔</span>
+          <span class="text-emerald-400">03 DECIDE</span>
+        </div>
+        <div class="text-right">
+          <p class="text-xs text-stone-300 font-semibold tracking-wide">
+            “WE DO NOT REPLACE THE DECISION-MAKER. <span class="text-white font-black underline decoration-emerald-500 decoration-2">WE HELP THEM FIND WHERE TO LOOK.</span>”
+          </p>
+        </div>
+      </div>
+
+      <!-- Footer Takeaway -->
+      <div class="flex items-center justify-between pt-4 border-t border-stone-200 text-xs text-stone-500 font-medium">
+        <span>VanRaksha AI • Slide 7 / 7</span>
+        <span class="font-bold text-emerald-700">VanRaksha AI • PS-7 • AI + Development</span>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bottom Interactive Slide Nav Dots (No-Print) -->
+  <footer class="no-print w-full max-w-7xl px-6 py-2.5 flex items-center justify-between text-xs text-stone-400">
+    <div class="flex items-center gap-2">
+      <span class="font-mono text-[11px] text-stone-500">Slides:</span>
+      <div class="flex items-center gap-1.5" id="navDots">
+        <button onclick="goToSlide(1)" class="h-2 rounded-full transition-all active-dot" title="Slide 1"></button>
+        <button onclick="goToSlide(2)" class="h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all" title="Slide 2"></button>
+        <button onclick="goToSlide(3)" class="h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all" title="Slide 3"></button>
+        <button onclick="goToSlide(4)" class="h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all" title="Slide 4"></button>
+        <button onclick="goToSlide(5)" class="h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all" title="Slide 5"></button>
+        <button onclick="goToSlide(6)" class="h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all" title="Slide 6"></button>
+        <button onclick="goToSlide(7)" class="h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all" title="Slide 7"></button>
+      </div>
+    </div>
+
+    <div class="flex items-center gap-4 text-stone-500 text-[11px] font-mono">
+      <span>Use <kbd class="px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 font-bold">←</kbd> <kbd class="px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 font-bold">→</kbd> or <kbd class="px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 font-bold">Space</kbd> to Navigate</span>
+      <span>•</span>
+      <span>Press <kbd class="px-1.5 py-0.5 rounded bg-stone-800 text-stone-300 font-bold">F</kbd> for Fullscreen</span>
+    </div>
+  </footer>
+
+  <script>
+    let currentSlide = 1;
+    const totalSlides = 7;
+
+    function updateSlide() {
+      document.querySelectorAll('.slide-item').forEach((slide, idx) => {
+        if (idx + 1 === currentSlide) {
+          slide.classList.add('active');
+        } else {
+          slide.classList.remove('active');
+        }
+      });
+
+      document.getElementById('currentSlideNum').innerText = currentSlide;
+
+      // Update dots
+      const dots = document.querySelectorAll('#navDots button');
+      dots.forEach((dot, idx) => {
+        if (idx + 1 === currentSlide) {
+          dot.className = 'h-2 rounded-full transition-all active-dot';
+        } else {
+          dot.className = 'h-2 w-3 rounded-full bg-stone-800 hover:bg-stone-700 transition-all';
+        }
+      });
+    }
+
+    function nextSlide() {
+      if (currentSlide < totalSlides) {
+        currentSlide++;
+        updateSlide();
+      }
+    }
+
+    function prevSlide() {
+      if (currentSlide > 1) {
+        currentSlide--;
+        updateSlide();
+      }
+    }
+
+    function goToSlide(n) {
+      if (n >= 1 && n <= totalSlides) {
+        currentSlide = n;
+        updateSlide();
+      }
+    }
+
+    // Keyboard bindings
+    window.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown') {
+        nextSlide();
+      } else if (e.key === 'ArrowLeft' || e.key === 'PageUp') {
+        prevSlide();
+      } else if (e.key >= '1' && e.key <= '7') {
+        goToSlide(parseInt(e.key));
+      } else if (e.key === 'f' || e.key === 'F') {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(() => {});
+        } else {
+          document.exitFullscreen().catch(() => {});
+        }
+      }
+    });
+  </script>
+</body>
+</html>
