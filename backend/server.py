@@ -867,7 +867,7 @@ class FRAServerHandler(http.server.SimpleHTTPRequestHandler):
         # Serve static files from web root if path is not an API
         web_dir = BASE_DIR.parent / "web"
         if not web_dir.exists():
-            web_dir = BASE_DIR.parent / "frontend"
+            web_dir = BASE_DIR.parent
         
         file_path = web_dir / path.lstrip('/')
         if path == '' or path == '/':
